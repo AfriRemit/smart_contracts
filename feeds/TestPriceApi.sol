@@ -2,44 +2,8 @@
 pragma solidity ^0.8.13;
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
 
-//TODO: Add comments, pass feed contract address as param to constructor, import interface file
-
-// DAI/USDT     998550000000000000
-
-// NEAR/USDT   1004700000000000000
 
 
-//AAVE/USDT     62810000000000000000
-
-//UNI/USDT     4078300000000000000
-
-//COMP/USDT   40630000000000000000
-
-//1000000000000000000
-
-
-/*  
-
-aave 98920000000000000000
-link 1522500000
-uni 5200600000000000000
-comp 53200000000000000000
-trx 105130000000000000
-dai 999400000000000000
-near 1457000000000000000
-
-
-[LINK,  DAI, NEAR , COMP, TRX , AAVE]
-*/
-          
-/*
-[1522500000000000000,999400000000000000,1457000000000000000,53200000000000000000,105130000000000000,98920000000000000000]
-] 
-*/
-//0x57623d612f6bce1d848bc6023125feb2100f8f9f,[0x3de9fd008de2dba0dde425c2059380122c7cb189,0xd54e1379c3c1b400818a7bc2dcfecc5e3f7d884b,0x543879308a813b3d1fee5bd84fde861d537699f8,0x232aad86ef0cdc03cf3f39f6f37aa42af4b0f1fb,0x73398b0b3176456dcaee855d9c723288bc512f9e,0x312e2ab846e7c0e8a5faebb19efd01f5e946a54c],[1522500000000000000,999400000000000000,1457000000000000000,53200000000000000000,105130000000000000,98920000000000000000]
-//[0x3de9fd008de2dba0dde425c2059380122c7cb189,0xd54e1379c3c1b400818a7bc2dcfecc5e3f7d884b,0x543879308a813b3d1fee5bd84fde861d537699f8,0x232aad86ef0cdc03cf3f39f6f37aa42af4b0f1fb,0x73398b0b3176456dcaee855d9c723288bc512f9e,0x312e2ab846e7c0e8a5faebb19efd01f5e946a54c]
-//GOERLI
- //[0xD652D9C2d166FEfa0886c70d9461C2F2965b65e6,0x61e99C5F3883A548Dd3907F8A0B4a9B05c195289,0x5fB5A81A495Ec9842016001fBF3745f40B7de7cc,0x47f887ff5FA94df0Bc1F6E9bF18Da8F2F77a09FF,0x882F92ad461530C065F136f8dF49397C2956d489,0xF04866F98a77481d9a46958948692897c98D37b1]
 contract TestPriceFeed is OwnerIsCreator {
     mapping(address => uint256) Price;
 
@@ -47,7 +11,7 @@ contract TestPriceFeed is OwnerIsCreator {
 
     uint256 NATIVE_PRICE= 511100000000000000;
 
-    uint256 BENZ_RATE=  511100000000000000;
+    uint256 AFRI_COIN_RATE=  511100000000000000;
 
     address public NATIVE_TOKEN = NATIVE_TOKEN = address(uint160(uint256(keccak256(abi.encodePacked("Shard")))));
  
@@ -55,15 +19,15 @@ contract TestPriceFeed is OwnerIsCreator {
 mapping(address => bool)  isTokenTradeable;
 
 address []   TradeableTokenAddresses;    
-    constructor(address _BENZ_TOKEN_ADDRESS, address [] memory _tokenAddresses, uint256 [] memory _prices){
+    constructor(address _AFRI_COIN_ADDRESS, address [] memory _tokenAddresses, uint256 [] memory _prices){
         // Set Native Token to Native Price
      Price[NATIVE_TOKEN]= NATIVE_PRICE;
-     Price[_BENZ_TOKEN_ADDRESS]= BENZ_RATE;
+     Price[_AFRI_COIN_ADDRESS]= AFRI_COIN_RATE;
      
      isTokenTradeable[NATIVE_TOKEN]= true;
-     isTokenTradeable[_BENZ_TOKEN_ADDRESS]= true;
+     isTokenTradeable[_AFRI_COIN_ADDRESS]= true;
      TradeableTokenAddresses.push(NATIVE_TOKEN);
-     TradeableTokenAddresses.push(_BENZ_TOKEN_ADDRESS);
+     TradeableTokenAddresses.push(_AFRI_COIN_ADDRESS);
      testnetHelper(_tokenAddresses,_prices);
     }
 
@@ -128,14 +92,11 @@ function checkTokenTradeable(address _tokenAddress) external view returns (bool)
 function getTradeableTokenAddresses() public view returns (address [] memory){
     return TradeableTokenAddresses;
 }
-
-      
-       function setTokenPrice(address _TokenAddress, uint256 _Price) internal {
+ 
+    function setTokenPrice(address _TokenAddress, uint256 _Price) internal {
                    Price[_TokenAddress] = _Price;
     }
 
-
-    
 
     function getTokenPrice(address _TokenAddress) public  view returns (uint256){
             return Price[_TokenAddress];

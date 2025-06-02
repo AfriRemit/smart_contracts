@@ -9,8 +9,12 @@ import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/O
 
 contract Swap is OwnerIsCreator {
   
-//0x09c604980a0858d51cc7ff08108302c8e979fdc7,0x57623d612f6bce1d848bc6023125feb2100f8f9f
- 
+
+event Received(address, uint);
+
+receive() external payable {
+    emit Received(msg.sender, msg.value);
+}
   TestPriceFeed private priceAPI;
     
    
@@ -38,7 +42,7 @@ contract Swap is OwnerIsCreator {
     // paired address to USDT
    
 
-    address public BENZ_TOKEN_ADDRESS;
+    address public AFRI_COIN;
  
     // id => liquidity pools
     mapping(uint => Pool) public pools;
@@ -78,18 +82,18 @@ contract Swap is OwnerIsCreator {
         uint[] liquids;
     }
 
-    constructor(address _priceApI,address _BENZ_TOKEN_ADDRESS) {
+    constructor(address _priceApI,address _AFRI_COIN) {
         
 
 
 // Initialize the priceAPI with the provided _priceAPI parameter.
 priceAPI = TestPriceFeed(_priceApI);
 
-// Set the BENZ_TOKEN_ADDRESS to the provided _BENZ_TOKEN_ADDRESS.
-BENZ_TOKEN_ADDRESS = _BENZ_TOKEN_ADDRESS;
+// Set the AFRI_COIN to the provided _AFRI_COIN.
+AFRI_COIN = _AFRI_COIN;
 
-//CREATE POOL FOR NATIVE/BENZ-TOKEN
-_createPool(priceAPI.getNativeToken(),_BENZ_TOKEN_ADDRESS);
+//CREATE POOL FOR NATIVE/AFRI_COIN
+_createPool(priceAPI.getNativeToken(),_AFRI_COIN);
 
         //testnetHelper();
     }
@@ -470,7 +474,7 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         );
 
         // USDT as reward token
-        xIERC20(BENZ_TOKEN_ADDRESS).transfer(msg.sender, amount);
+        xIERC20(AFRI_COIN).transfer(msg.sender, amount);
 
         providers[msg.sender].balance -= amount;
     }
@@ -498,14 +502,14 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
     ) public onlyOwner {
         require(_platformProfit >= amount, "Insufficient Balance");
 
-        // Benz token as reward token
-        xIERC20(BENZ_TOKEN_ADDRESS).transfer(receiver, amount);
+        // AFRI_COIN token as reward token
+        xIERC20(AFRI_COIN).transfer(receiver, amount);
         _platformProfit -= amount;
     }
 
     function burnFees() public onlyOwner {
         require(getBurnableFeesBal() > 0, "Insufficient Balance");
-      xIERC20(BENZ_TOKEN_ADDRESS).burn(_burnableFees);
+      xIERC20(AFRI_COIN).burn(_burnableFees);
       _burnableFees-= getBurnableFeesBal();
   }
 
@@ -586,7 +590,7 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         quoteToken.transfer(owner, (amount1 - _fee));
 
         // convert fee to Fleep tokens
-        return estimate(token1, BENZ_TOKEN_ADDRESS, _fee);
+        return estimate(token1, AFRI_COIN, _fee);
     }
 
     // ERC20 => NATIVE
@@ -613,7 +617,7 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         require(sent, "Failed to send Shard to the User");
 
         // convert fee to Fleep tokens
-        return estimate(priceAPI.getNativeToken(), BENZ_TOKEN_ADDRESS, _fee);
+        return estimate(priceAPI.getNativeToken(), AFRI_COIN, _fee);
     }
 
     // ERC20 => ERC20
@@ -637,7 +641,7 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         quoteToken.transfer(owner, (amount1 - _fee));
 
         // convert fee to Fleep tokens
-        return estimate(token1, BENZ_TOKEN_ADDRESS, _fee);
+        return estimate(token1, AFRI_COIN, _fee);
     }
 
     function _inWei(uint256 amount) private pure returns (uint256) {
