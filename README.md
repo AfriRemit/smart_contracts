@@ -201,4 +201,4 @@ This project is licensed under GPL-3.0 - see the [LICENSE](LICENSE) file for det
 - Consider professional security audits for production use
 - Monitor for potential vulnerabilities and updates
 
-
+DEPLOYED_ADDRESS = 0X233433DJDJFHDJFHDFKDJFKJD
