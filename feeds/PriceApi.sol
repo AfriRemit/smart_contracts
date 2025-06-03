@@ -17,9 +17,7 @@ contract priceFeed {
  
     ISupraSValueFeed sValueFeed;
 
-    //GOERLI 0x5B059e343E88840895e82Fc8706cc888E0f6714D
-  
-   // address constant SHARDEUM_priceFeed= 0xED2d2Da27b27A32dc80a4cb76CF8c8F65B64F90F;
+   
  
     constructor(address _NETWORK_FEED_ADDRESS){
         sValueFeed = ISupraSValueFeed(_NETWORK_FEED_ADDRESS);
