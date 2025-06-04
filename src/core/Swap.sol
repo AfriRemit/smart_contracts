@@ -4,7 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {Events} from "../libraries/Events.sol";
 import {xIERC20} from "../interfaces/xIERC20.sol";
-import {TestPriceFeed} from "../feeds/TestPriceApi.sol";
+import {TestPriceFeed} from "../feeds/TestPriceFeed.sol";
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
 
 contract Swap is OwnerIsCreator {
@@ -92,7 +92,7 @@ priceAPI = TestPriceFeed(_priceApI);
 // Set the AFRI_COIN to the provided _AFRI_COIN.
 AFRI_COIN = _AFRI_COIN;
 
-//CREATE POOL FOR NATIVE/AFRI_COIN
+//CREATE POOL FOR NATIVE/BENZ-TOKEN
 _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
 
         //testnetHelper();
@@ -502,7 +502,7 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
     ) public onlyOwner {
         require(_platformProfit >= amount, "Insufficient Balance");
 
-        // AFRI_COIN token as reward token
+        // Benz token as reward token
         xIERC20(AFRI_COIN).transfer(receiver, amount);
         _platformProfit -= amount;
     }
