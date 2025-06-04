@@ -5,7 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
 import {Events} from "../libraries/Events.sol";
 import {xIERC20} from "../interfaces/xIERC20.sol";
 import {TestPriceFeed} from "../feeds/TestPriceApi.sol";
-import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
+import {OwnerIsCreator} from "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol";
 
 contract Swap is OwnerIsCreator {
   
