@@ -1,60 +1,84 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-
 import {Events} from "../libraries/Events.sol";
 import {xIERC20} from "../interfaces/xIERC20.sol";
-import {TestPriceFeed} from "../feeds/TestPriceApi.sol";
+import {TestPriceFeed} from "../feeds/TestPriceFeed.sol";
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
 
+/**
+ * @title AfriCoin Swap Contract
+ * @dev Decentralized exchange contract for token swapping and liquidity provision on LISK network
+ * @notice This contract allows users to swap tokens, provide liquidity, and earn rewards using ETH as native token
+ * @author AfriCoin Team
+ */
 contract Swap is OwnerIsCreator {
-  
-
-event Received(address, uint);
-
-receive() external payable {
-    emit Received(msg.sender, msg.value);
-}
-  TestPriceFeed private priceAPI;
     
-   
+    // ============ EVENTS ============
     
-    // contract admin
+    /**
+     * @dev Emitted when the contract receives native ETH tokens
+     * @param sender Address that sent the ETH
+     * @param amount Amount of ETH received in wei
+     */
+    event Received(address sender, uint amount);
+
+    // ============ RECEIVE FUNCTION ============
+    
+    /**
+     * @dev Allows contract to receive native ETH tokens
+     * @notice Automatically called when ETH is sent to the contract
+     */
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+    
+    // ============ STATE VARIABLES ============
+    
+    /// @dev Price feed oracle contract for token price calculations
+    TestPriceFeed private priceAPI;
+    
+    /// @dev Platform accumulated profits in AfriCoin tokens
     uint256 private _platformProfit;
+    
+    /// @dev Accumulated fees designated for burning
     uint256 private _burnableFees;
 
-    // charges 0.20% fee on every successful swaps
+    /// @dev Swap fee percentage (0.20% = 20 basis points)
     uint private swapFee = 20;
 
-    // ids to avoid conflicts
+    /// @dev Unique identifier counter for pools
     uint256 private POOL_ID;
+    
+    /// @dev Unique identifier counter for liquidity positions
     uint256 private LIQUID_ID;
+    
+    /// @dev Unique identifier counter for providers
     uint256 private PROVIDER_ID;
 
-    // token contract address => pair index address
-    // only in the token paired to USD format
-  
-
-
-    // is a member of the pairs mapping
-    // but its the native pair MATIC not IERC20
-
-    // paired address to USDT
-   
-
+    /// @dev Address of the AfriCoin token contract
     address public AFRI_COIN;
  
-    // id => liquidity pools
+    // ============ MAPPINGS ============
+    
+    /// @dev Maps pool ID to Pool struct
     mapping(uint => Pool) public pools;
-    // user address => provider data
+    
+    /// @dev Maps provider address to Provider struct
     mapping(address => Provider) public providers;
-    // id => liquids
+    
+    /// @dev Maps liquid ID to Liquid struct
     mapping(uint => Liquid) public liquids;
 
-    // === Structs === //
+    // ============ STRUCTS ============
 
-    // pool consists of liquids
-    // from n numbers providers
+    /**
+     * @dev Represents a liquidity pool containing two tokens
+     * @param id Unique identifier for the pool
+     * @param token0 Address of the first token in the pair
+     * @param token1 Address of the second token in the pair
+     * @param liquids Array of liquid IDs belonging to this pool
+     */
     struct Pool {
         uint id;
         address token0;
@@ -62,8 +86,14 @@ receive() external payable {
         uint[] liquids;
     }
 
-    // liquid belongs to a provider
-    // also belongs to a pool
+    /**
+     * @dev Represents a liquidity position provided by a user
+     * @param id Unique identifier for the liquid position
+     * @param poolId ID of the pool this liquid belongs to
+     * @param amount0 Amount of token0 in the position
+     * @param amount1 Amount of token1 in the position
+     * @param provider Address of the liquidity provider
+     */
     struct Liquid {
         uint id;
         uint poolId;
@@ -72,8 +102,14 @@ receive() external payable {
         address provider;
     }
 
-    // provider properties
-    // owns n numbers of liquids
+    /**
+     * @dev Represents a liquidity provider's profile
+     * @param id Unique identifier for the provider
+     * @param totalEarned Total rewards earned by the provider
+     * @param balance Current available balance for withdrawal
+     * @param autoStake Whether to automatically stake rewards
+     * @param liquids Array of liquid IDs owned by this provider
+     */
     struct Provider {
         uint id;
         uint256 totalEarned;
@@ -82,24 +118,33 @@ receive() external payable {
         uint[] liquids;
     }
 
-    constructor(address _priceApI,address _AFRI_COIN) {
-        
+    // ============ CONSTRUCTOR ============
 
+    /**
+     * @dev Initializes the swap contract with price feed and AfriCoin token
+     * @param _priceAPI Address of the price feed oracle contract
+     * @param _AFRI_COIN Address of the AfriCoin token contract
+     */
+    constructor(address _priceAPI, address _AFRI_COIN) {
+        // Initialize the price feed oracle
+        priceAPI = TestPriceFeed(_priceAPI);
 
-// Initialize the priceAPI with the provided _priceAPI parameter.
-priceAPI = TestPriceFeed(_priceApI);
+        // Set the AfriCoin token address
+        AFRI_COIN = _AFRI_COIN;
 
-// Set the AFRI_COIN to the provided _AFRI_COIN.
-AFRI_COIN = _AFRI_COIN;
-
-//CREATE POOL FOR NATIVE/AFRI_COIN
-_createPool(priceAPI.getNativeToken(),_AFRI_COIN);
-
-        //testnetHelper();
+        // Create initial pool for ETH/AfriCoin pair
+        _createPool(priceAPI.getNativeToken(), _AFRI_COIN);
     }
 
-    // calculates all the size of the liquids
-    // in a pool of token pair
+    // ============ PUBLIC VIEW FUNCTIONS ============
+
+    /**
+     * @dev Returns the total liquidity size for a token pair
+     * @param token0 Address of the first token
+     * @param token1 Address of the second token
+     * @return amount0 Total amount of token0 in the pool
+     * @return amount1 Total amount of token1 in the pool
+     */
     function getPoolSize(
         address token0,
         address token1
@@ -108,39 +153,68 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         return _poolSize(poolId);
     }
 
-    // gets the exchanges rates for pair of tokens
-    // with accordance to amount of tokens
-
-
-
-
-
+    /**
+     * @dev Estimates the output amount for a token swap
+     * @param token0 Address of the input token
+     * @param token1 Address of the output token
+     * @param amount0 Amount of input token in wei
+     * @return Estimated amount of output token
+     */
     function estimate(
-         address token0,
-          address token1,
-        uint256 amount0 // in wei
-    ) public  view returns (uint256) {
-        
-
-        uint256 _rate = priceAPI.estimate(token0,token1,amount0);
+        address token0,
+        address token1,
+        uint256 amount0
+    ) public view returns (uint256) {
+        uint256 _rate = priceAPI.estimate(token0, token1, amount0);
         return _rate;
-       
     }
 
-    // returns the contract address
+    /**
+     * @dev Returns the address of this contract
+     * @return Address of the swap contract
+     */
     function getContractAddress() public view returns (address) {
         return address(this);
     }
 
-  
-  
+    /**
+     * @dev Finds a pool ID for a given token pair
+     * @param token0 Address of the first token
+     * @param token1 Address of the second token
+     * @return Pool ID if found, 0 if not found
+     */
+    function findPool(address token0, address token1) public view returns (uint256) {
+        return _findPool(token0, token1);
+    }
 
-    // register as a provider
+    /**
+     * @dev Gets the liquid ID for a provider in a specific pool
+     * @param pool_id ID of the pool to check
+     * @return Liquid ID if found, 0 if not found
+     */
+    function liquidIndex(uint256 pool_id) public view returns (uint256) {
+        return _liquidIndex(pool_id, msg.sender);
+    }
+
+    /**
+     * @dev Returns the current burnable fees balance (owner only)
+     * @return Amount of fees available for burning
+     */
+    function getBurnableFeesBal() public view onlyOwner returns (uint256) {
+        return _burnableFees;
+    }
+
+    // ============ PROVIDER FUNCTIONS ============
+
+    /**
+     * @dev Registers a new liquidity provider account
+     * @notice Can only be called by addresses that are not already providers
+     */
     function unlockedProviderAccount() public onlyGuest {
-        // create new unique id
+        // Create new unique provider ID
         PROVIDER_ID++;
 
-        // provider with default entries
+        // Initialize provider with default values
         providers[msg.sender] = Provider(
             PROVIDER_ID,
             providers[msg.sender].totalEarned,
@@ -150,8 +224,40 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         );
     }
 
-    // === Swapping === //
+    /**
+     * @dev Updates provider's auto-staking preference
+     * @param _autoStake Whether to automatically stake rewards
+     */
+    function updateProviderProfile(bool _autoStake) public onlyProvider {
+        providers[msg.sender].autoStake = _autoStake;
+    }
 
+    /**
+     * @dev Allows provider to withdraw their earned rewards
+     * @param amount Amount of AfriCoin tokens to withdraw
+     */
+    function withDrawEarnings(uint256 amount) public onlyProvider {
+        require(
+            providers[msg.sender].balance >= amount,
+            "Insufficient Balance"
+        );
+
+        // Transfer AfriCoin rewards to provider
+        xIERC20(AFRI_COIN).transfer(msg.sender, amount);
+
+        // Update provider balance
+        providers[msg.sender].balance -= amount;
+    }
+
+    // ============ SWAPPING FUNCTIONS ============
+
+    /**
+     * @dev Swaps tokens for the caller
+     * @param token0 Address of the input token
+     * @param token1 Address of the output token
+     * @param amount0 Amount of input token to swap
+     * @return Amount of output token received
+     */
     function swap(
         address token0,
         address token1,
@@ -160,6 +266,14 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         return doSwap(token0, token1, amount0, msg.sender);
     }
 
+    /**
+     * @dev Performs token swap with detailed validation and fee handling
+     * @param token0 Address of the input token
+     * @param token1 Address of the output token
+     * @param amount0 Amount of input token to swap
+     * @param user Address receiving the swapped tokens
+     * @return amount1 Amount of output token received
+     */
     function doSwap(
         address token0,
         address token1,
@@ -171,36 +285,36 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         uint256 amount1;
         uint256 _safeAmount0 = amount0;
 
+        // Find the pool for this token pair
         uint poolId = _findPool(token0, token1);
         require(pools[poolId].id > 0, "Pool does not exists");
 
-        // SHM => ERC20
-        if ( token0 == priceAPI.getNativeToken()) {
-
-            require(msg.value  >= 100,"Native Currency cannot be lesser than 100 WEI ");
+        // Handle ETH => ERC20 swaps
+        if (token0 == priceAPI.getNativeToken()) {
+            require(msg.value >= 100, "Native Currency cannot be lesser than 100 WEI");
             
             _safeAmount0 = msg.value;
             amount1 = estimate(token0, token1, _safeAmount0);
 
-            // check if contract has enough destination token liquid
+            // Verify sufficient pool liquidity
             (, uint256 poolSizeToken1) = _poolSize(poolId);
             require(poolSizeToken1 >= amount1, "Insufficient Pool Size");
 
+            // Process swap and calculate fees
             uint256 fee = _transferSwappedTokens0(
                 pools[poolId].token1,
                 amount1,
                 user
             );
 
+            // Distribute fees: 80% to providers, 3% for burning, 17% platform profit
             uint256 providersReward = ((fee * 80) / 100);
-            uint256 burnFee= ((fee * 3) /100);
+            uint256 burnFee = ((fee * 3) / 100);
             _burnableFees += burnFee;
-            uint256 contractProfit= fee - providersReward - burnFee;
+            uint256 contractProfit = fee - providersReward - burnFee;
             _platformProfit += contractProfit;
-            
-         
-            
 
+            // Update liquidity positions
             _aggregateLiquids(
                 _safeAmount0,
                 amount1,
@@ -209,31 +323,30 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
                 providersReward
             );
         }
-        // ERC20 => MATIC
+        // Handle ERC20 => ETH swaps
         else if (token1 == priceAPI.getNativeToken()) {
             amount1 = estimate(token0, token1, _safeAmount0);
 
-            // check if contract has enough destination token liquid
+            // Verify sufficient pool liquidity
             (uint256 poolSizeToken1, ) = _poolSize(poolId);
             require(poolSizeToken1 >= amount1, "Insufficient Pool Size");
 
+            // Process swap and calculate fees
             uint256 fee = _transferSwappedTokens1(
-                pools[poolId].token1,
+                pools[poolId].token0,
                 _safeAmount0,
                 amount1,
                 user
             );
-          uint256 providersReward = ((fee * 80) / 100);
-        
-           uint256 burnFee= ((fee * 3) /100);
 
+            // Distribute fees
+            uint256 providersReward = ((fee * 80) / 100);
+            uint256 burnFee = ((fee * 3) / 100);
             _burnableFees += burnFee;
-           
-         uint256 contractProfit = fee - providersReward - burnFee;
-            
+            uint256 contractProfit = fee - providersReward - burnFee;
             _platformProfit += contractProfit;
-            
 
+            // Update liquidity positions
             _aggregateLiquids(
                 _safeAmount0,
                 amount1,
@@ -242,25 +355,23 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
                 providersReward
             );
         }
-        // ERC20 => ERC2O
+        // Handle ERC20 => ERC20 swaps
         else {
-            amount1 = estimate(
-                token0,
-                token1,
-                _safeAmount0
-            );
+            amount1 = estimate(token0, token1, _safeAmount0);
+            
+            // Determine correct pool size based on token position
             uint256 poolSizeToken1;
-            if(pools[poolId].token0 == token1){
-            (uint256 _poolSizeToken1,) = _poolSize(poolId);
-            poolSizeToken1= _poolSizeToken1;
-
-            }else if(pools[poolId].token1 == token1){
-                (,uint256 _poolSizeToken1) = _poolSize(poolId);
-                poolSizeToken1 =_poolSizeToken1;
+            if (pools[poolId].token0 == token1) {
+                (uint256 _poolSizeToken1, ) = _poolSize(poolId);
+                poolSizeToken1 = _poolSizeToken1;
+            } else if (pools[poolId].token1 == token1) {
+                (, uint256 _poolSizeToken1) = _poolSize(poolId);
+                poolSizeToken1 = _poolSizeToken1;
             }
 
             require(poolSizeToken1 >= amount1, "Insufficient Pool Size");
 
+            // Process swap and calculate fees
             uint256 fee = _transferSwappedTokens2(
                 token0,
                 token1,
@@ -269,17 +380,14 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
                 user
             );
 
+            // Distribute fees
             uint256 providersReward = ((fee * 80) / 100);
-            
-            uint256 burnFee= ((fee * 3) /100);
-
-             _burnableFees += burnFee;
-            
-            uint256 contractProfit= fee - providersReward - burnFee;
-            
+            uint256 burnFee = ((fee * 3) / 100);
+            _burnableFees += burnFee;
+            uint256 contractProfit = fee - providersReward - burnFee;
             _platformProfit += contractProfit;
-            
 
+            // Update liquidity positions
             _aggregateLiquids(
                 _safeAmount0,
                 amount1,
@@ -289,7 +397,7 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
             );
         }
 
-        // store the swap data on-chain
+        // Emit swap event for on-chain tracking
         emit Events.FleepSwaped(
             amount0,
             amount1,
@@ -301,49 +409,54 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         return amount1;
     }
 
-    // === Providers === //
+    // ============ LIQUIDITY PROVIDER FUNCTIONS ============
 
+    /**
+     * @dev Provides liquidity to a specified pool
+     * @param poolId ID of the pool to provide liquidity to
+     * @param amount0 Amount of token0 to provide
+     */
     function provideLiquidity(
         uint poolId,
         uint256 amount0
-    ) public payable  {
+    ) public payable {
         require(amount0 >= 100, "Amount cannot be lesser than 100 WEI");
 
         uint256 amount1;
         uint256 _safeAmount0 = amount0;
 
-        if(providers[msg.sender].id == 0){
-        unlockedProviderAccount();
+        // Auto-register as provider if not already registered
+        if (providers[msg.sender].id == 0) {
+            unlockedProviderAccount();
         }
 
+        // Handle ETH token provision
         if (pools[poolId].token0 == priceAPI.getNativeToken()) {
-            require(msg.value > 100, "Matic cannot be lesser than 1OO WEI");
-            // only in format of MATIC as pair subject
-            // ex MATIC/XEND
-
+            require(msg.value > 100, "ETH cannot be lesser than 100 WEI");
+            
             _safeAmount0 = msg.value;
-            // get the estimate for token1
+            // Calculate required amount of paired token
             amount1 = estimate(
                 pools[poolId].token0,
                 pools[poolId].token1,
                 _safeAmount0
             );
 
-            
-            // stake token1 to smart contract
+            // Transfer paired token from provider to contract
             xIERC20(pools[poolId].token1).transferFrom(
                 msg.sender,
                 address(this),
                 amount1
             );
         } else {
-            // get the estimate for token1
+            // Calculate required amount of paired token
             amount1 = estimate(
                 pools[poolId].token0,
                 pools[poolId].token1,
                 _safeAmount0
             );
-            // stake tokens to smart contract
+            
+            // Transfer both tokens from provider to contract
             xIERC20(pools[poolId].token0).transferFrom(
                 msg.sender,
                 address(this),
@@ -356,18 +469,19 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
             );
         }
 
+        // Check if provider already has liquidity in this pool
         uint liquidId = _liquidIndex(poolId, msg.sender);
 
         if (liquidId > 0) {
-            // if liquid exist increment the amount
+            // Update existing liquidity position
             liquids[liquidId].amount0 += _safeAmount0;
             liquids[liquidId].amount1 += amount1;
         } else {
-            // otherwise create the new liquid
+            // Create new liquidity position
             _createLiquid(poolId, _safeAmount0, amount1, msg.sender);
         }
 
-        // store the liquidity data on-chain
+        // Emit liquidity provision event
         emit Events.LiquidProvided(
             pools[poolId].token0,
             pools[poolId].token1,
@@ -378,48 +492,54 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         );
     }
 
+    /**
+     * @dev Removes liquidity from a pool and returns tokens to provider
+     * @param id ID of the liquidity position to remove
+     */
     function removeLiquidity(uint id) public onlyProvider {
         require(liquids[id].provider == msg.sender, "Unauthorized");
     
-         // extract pool id from liquid
+        // Get pool information
         uint poolId = liquids[id].poolId;
-        // extract pool struct
         Pool memory pool = pools[poolId];
 
-         if (pools[poolId].token0 == priceAPI.getNativeToken()){
-              payable(msg.sender).transfer(liquids[id].amount0);
-              xIERC20(pool.token1).transfer(msg.sender, liquids[id].amount1);
-         }else{
-        // transfer tokens to providers
-        xIERC20(pool.token0).transfer(msg.sender, liquids[id].amount0);
-        xIERC20(pool.token1).transfer(msg.sender, liquids[id].amount1);
+        // Return tokens to provider based on pool type
+        if (pools[poolId].token0 == priceAPI.getNativeToken()) {
+            // Return ETH and ERC20 token
+            payable(msg.sender).transfer(liquids[id].amount0);
+            xIERC20(pool.token1).transfer(msg.sender, liquids[id].amount1);
+        } else {
+            // Return both ERC20 tokens
+            xIERC20(pool.token0).transfer(msg.sender, liquids[id].amount0);
+            xIERC20(pool.token1).transfer(msg.sender, liquids[id].amount1);
+        }
 
-         }
-
-        // delete liquid
-
+        // Remove liquid ID from pool's liquids array
         for (uint index = 0; index < pools[poolId].liquids.length; index++) {
             if (liquids[pools[poolId].liquids[index]].provider == msg.sender) {
                 delete pools[poolId].liquids[index];
             }
         }
 
-        for (
-            uint index = 0;
-            index < providers[msg.sender].liquids.length;
-            index++
-        ) {
-            if (
-                liquids[providers[msg.sender].liquids[index]].poolId == pool.id
-            ) {
+        // Remove liquid ID from provider's liquids array
+        for (uint index = 0; index < providers[msg.sender].liquids.length; index++) {
+            if (liquids[providers[msg.sender].liquids[index]].poolId == pool.id) {
                 delete providers[msg.sender].liquids[index];
             }
         }
 
+        // Delete the liquidity position
         delete liquids[id];
     }
 
-    // fetach all liquidities from a wallet
+    /**
+     * @dev Returns all liquidity positions for a given wallet
+     * @param wallet Address of the wallet to query
+     * @return _pools Array of pool IDs
+     * @return _amounts0 Array of token0 amounts
+     * @return _amounts1 Array of token1 amounts
+     * @return providerLiquids Array of liquid IDs
+     */
     function myLiquidities(
         address wallet
     )
@@ -432,7 +552,6 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
             uint256[] memory
         )
     {
-        // array of provider liquidities position
         uint256[] memory providerLiquids = providers[wallet].liquids;
 
         uint256[] memory _pools = new uint256[](providerLiquids.length);
@@ -448,14 +567,14 @@ _createPool(priceAPI.getNativeToken(),_AFRI_COIN);
         return (_pools, _amounts0, _amounts1, providerLiquids);
     }
 
-function findPool(address token0, address token1) public view returns (uint256) {
-   return _findPool(token0, token1);
-}
+    // ============ ADMIN FUNCTIONS ============
 
-function liquidIndex(uint256 pool_id) public view returns (uint256){
-     return _liquidIndex(pool_id,msg.sender);
-}
- 
+    /**
+     * @dev Creates a new trading pool for a token pair (owner only)
+     * @param token0 Address of the first token
+     * @param token1 Address of the second token
+     * @return Pool ID of the created pool
+     */
     function createPool(
         address token0,
         address token1
@@ -463,62 +582,51 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         return _createPool(token0, token1);
     }
 
-    function updateProviderProfile(bool _autoStake) public onlyProvider {
-        providers[msg.sender].autoStake = _autoStake;
-    }
-
-    function withDrawEarnings(uint256 amount) public onlyProvider {
-        require(
-            providers[msg.sender].balance >= amount,
-            "Insufficient Balance"
-        );
-
-        // USDT as reward token
-        xIERC20(AFRI_COIN).transfer(msg.sender, amount);
-
-        providers[msg.sender].balance -= amount;
-    }
-
- 
- 
-    // === Administration === //
-
- 
-
-
-
-
-
+    /**
+     * @dev Updates the swap fee percentage (owner only)
+     * @param fee New fee in basis points (20 = 0.20%)
+     */
     function updateSwapFee(uint fee) public onlyOwner {
         require(fee > 0, "Platform fee cannot be zero");
         require(fee < 1000, "Platform fee cannot be a hundred");
         swapFee = fee;
     }
 
-  
+    /**
+     * @dev Withdraws platform earnings to specified address (owner only)
+     * @param amount Amount of AfriCoin tokens to withdraw
+     * @param receiver Address to receive the tokens
+     */
     function withDrawPlaformEarnings(
         uint256 amount,
         address receiver
     ) public onlyOwner {
         require(_platformProfit >= amount, "Insufficient Balance");
 
-        // AFRI_COIN token as reward token
+        // Transfer AfriCoin tokens to receiver
         xIERC20(AFRI_COIN).transfer(receiver, amount);
         _platformProfit -= amount;
     }
 
+    /**
+     * @dev Burns accumulated fees by destroying AfriCoin tokens (owner only)
+     */
     function burnFees() public onlyOwner {
         require(getBurnableFeesBal() > 0, "Insufficient Balance");
-      xIERC20(AFRI_COIN).burn(_burnableFees);
-      _burnableFees-= getBurnableFeesBal();
-  }
+        
+        // Burn the accumulated fees
+        xIERC20(AFRI_COIN).burn(_burnableFees);
+        _burnableFees -= getBurnableFeesBal();
+    }
 
-  function getBurnableFeesBal() public view onlyOwner returns (uint256){
-    return _burnableFees;
-  }
+    // ============ INTERNAL FUNCTIONS ============
 
-    // === Internal Functions === //
-
+    /**
+     * @dev Finds the liquid ID for a provider in a specific pool
+     * @param poolId ID of the pool
+     * @param provider Address of the provider
+     * @return Liquid ID if found, 0 if not found
+     */
     function _liquidIndex(
         uint poolId,
         address provider
@@ -534,6 +642,14 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         return 0;
     }
 
+    /**
+     * @dev Distributes swap impact and rewards across all liquidity providers
+     * @param amount0 Amount of token0 being swapped
+     * @param amount1 Amount of token1 being swapped
+     * @param poolSizeToken1 Total size of token1 in the pool
+     * @param pool Pool struct containing liquidity information
+     * @param fee Total fee to distribute to providers
+     */
     function _aggregateLiquids(
         uint256 amount0,
         uint256 amount1,
@@ -541,42 +657,36 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         Pool memory pool,
         uint256 fee
     ) private {
-        // equally share swap impact on all provider liquids based on their contribution
+        // Distribute swap impact proportionally across all providers
         for (uint index = 0; index < pool.liquids.length; index++) {
             uint liquidId = pool.liquids[index];
 
-
-            // reward the liquid provider
-            uint256 reward = ((liquids[liquidId].amount1 * fee) /
-                poolSizeToken1);
+            // Calculate provider's share of rewards based on their contribution
+            uint256 reward = ((liquids[liquidId].amount1 * fee) / poolSizeToken1);
 
             address provider = liquids[liquidId].provider;
 
-              // calculated with ratio of this liquid compared
-            // to other liquids contributing
-            uint256 additionAmount = ((liquids[liquidId].amount1 * amount0) /
-                poolSizeToken1);
-
-            // step I
+            // Calculate proportional addition to token0
+            uint256 additionAmount = ((liquids[liquidId].amount1 * amount0) / poolSizeToken1);
             liquids[liquidId].amount0 += additionAmount;
 
-                // calculated with ratio of this liquid compared
-            // to other liquids contributing
-            uint256 deductionAmount = ((liquids[liquidId].amount1 * amount1) /
-                poolSizeToken1);
-
-            // step II
+            // Calculate proportional deduction from token1
+            uint256 deductionAmount = ((liquids[liquidId].amount1 * amount1) / poolSizeToken1);
             liquids[liquidId].amount1 -= deductionAmount;
 
-
-
-
+            // Update provider rewards
             providers[provider].totalEarned += reward;
             providers[provider].balance += reward;
         }
     }
 
-    // NATIVE => ERC20
+    /**
+     * @dev Handles ETH => ERC20 token transfers and fee calculation
+     * @param token1 Address of the output ERC20 token
+     * @param amount1 Amount of output token to transfer
+     * @param owner Address receiving the tokens
+     * @return Fee amount in AfriCoin tokens
+     */
     function _transferSwappedTokens0(
         address token1,
         uint256 amount1,
@@ -584,16 +694,24 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
     ) private returns (uint256) {
         xIERC20 quoteToken = xIERC20(token1);
 
+        // Calculate swap fee
         uint256 _fee = ((amount1 / 1000) * swapFee);
 
-        // give user their destination token minus fee
+        // Transfer tokens minus fee to user
         quoteToken.transfer(owner, (amount1 - _fee));
 
-        // convert fee to Fleep tokens
+        // Convert fee to AfriCoin equivalent
         return estimate(token1, AFRI_COIN, _fee);
     }
 
-    // ERC20 => NATIVE
+    /**
+     * @dev Handles ERC20 => ETH token transfers and fee calculation
+     * @param token0 Address of the input ERC20 token
+     * @param amount0 Amount of input token
+     * @param amount1 Amount of ETH to transfer
+     * @param owner Address receiving the ETH
+     * @return Fee amount in AfriCoin tokens
+     */
     function _transferSwappedTokens1(
         address token0,
         uint256 amount0,
@@ -602,25 +720,35 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
     ) public payable returns (uint256) {
         xIERC20 baseToken = xIERC20(token0);
 
+        // Calculate swap fee
         uint256 _fee = ((amount1 / 1000) * swapFee);
 
+        // Transfer input token from user to contract
         baseToken.transferFrom(owner, address(this), amount0);
 
-        // give user their destination token minus fee
+        // Verify contract has sufficient ETH balance
         require(
             address(this).balance >= amount1,
             "Contract: Insufficient Balance"
         );
-     
 
-         (bool sent, ) = owner.call{value: amount1 - _fee}("");
-        require(sent, "Failed to send Shard to the User");
+        // Transfer ETH minus fee to user
+        (bool sent, ) = owner.call{value: amount1 - _fee}("");
+        require(sent, "Failed to send ETH to the User");
 
-        // convert fee to Fleep tokens
+        // Convert fee to AfriCoin equivalent
         return estimate(priceAPI.getNativeToken(), AFRI_COIN, _fee);
     }
 
-    // ERC20 => ERC20
+    /**
+     * @dev Handles ERC20 => ERC20 token transfers and fee calculation
+     * @param token0 Address of the input token
+     * @param token1 Address of the output token
+     * @param amount0 Amount of input token
+     * @param amount1 Amount of output token
+     * @param owner Address receiving the output tokens
+     * @return Fee amount in AfriCoin tokens
+     */
     function _transferSwappedTokens2(
         address token0,
         address token1,
@@ -631,23 +759,34 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         xIERC20 baseToken = xIERC20(token0);
         xIERC20 quoteToken = xIERC20(token1);
 
+        // Calculate swap fee
         uint256 _fee = ((amount1 / 1000) * swapFee);
 
-        // tranfers the base token from user to the
-        // smart contract
+        // Transfer input token from user to contract
         baseToken.transferFrom(owner, address(this), amount0);
 
-        // give user their destination token minus fee
+        // Transfer output token minus fee to user
         quoteToken.transfer(owner, (amount1 - _fee));
 
-        // convert fee to Fleep tokens
+        // Convert fee to AfriCoin equivalent
         return estimate(token1, AFRI_COIN, _fee);
     }
 
+    /**
+     * @dev Converts amount to wei (internal utility function)
+     * @param amount Amount to convert
+     * @return Amount in wei
+     */
     function _inWei(uint256 amount) private pure returns (uint256) {
         return amount * 10 ** 18;
     }
 
+    /**
+     * @dev Finds a pool ID for a given token pair
+     * @param token0 Address of the first token
+     * @param token1 Address of the second token
+     * @return Pool ID if found, 0 if not found
+     */
     function _findPool(
         address token0,
         address token1
@@ -656,17 +795,12 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
             token0 != address(0) && token1 != address(0),
             "Invalid Pool Tokens"
         );
+        
         for (uint index = 0; index <= POOL_ID; index++) {
-            // patern A
+            // Check both token arrangements (A/B and B/A)
             if (
-                pools[index].token0 == token0 && pools[index].token1 == token1
-            ) {
-                return index;
-            }
-
-            // pattern B
-            if (
-                pools[index].token0 == token1 && pools[index].token1 == token0
+                (pools[index].token0 == token0 && pools[index].token1 == token1) ||
+                (pools[index].token0 == token1 && pools[index].token1 == token0)
             ) {
                 return index;
             }
@@ -674,6 +808,13 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         return 0;
     }
 
+    /**
+     * @dev Creates a new liquidity position
+     * @param poolId ID of the pool
+     * @param amount0 Amount of token0
+     * @param amount1 Amount of token1
+     * @param provider Address of the liquidity provider
+     */
     function _createLiquid(
         uint poolId,
         uint256 amount0,
@@ -681,7 +822,8 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
         address provider
     ) private {
         LIQUID_ID++;
-        // create the liquid
+        
+        // Create the liquidity position
         liquids[LIQUID_ID] = Liquid(
             LIQUID_ID,
             poolId,
@@ -689,22 +831,37 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
             amount1,
             provider
         );
-        // register the liquid
+        
+        // Register the liquid in pool and provider records
         pools[poolId].liquids.push(LIQUID_ID);
         providers[provider].liquids.push(LIQUID_ID);
     }
 
+    /**
+     * @dev Calculates the total size of a liquidity pool
+     * @param id Pool ID
+     * @return amount0 Total amount of token0 in the pool
+     * @return amount1 Total amount of token1 in the pool
+     */
     function _poolSize(uint id) private view returns (uint256, uint256) {
         uint256 amount0;
         uint256 amount1;
+        
         for (uint index = 0; index < pools[id].liquids.length; index++) {
             uint liquidId = pools[id].liquids[index];
             amount0 += liquids[liquidId].amount0;
             amount1 += liquids[liquidId].amount1;
         }
+        
         return (amount0, amount1);
     }
 
+    /**
+     * @dev Creates a new liquidity pool for a token pair
+     * @param token0 Address of the first token
+     * @param token1 Address of the second token
+     * @return Pool ID of the created pool, 0 if pool already exists
+     */
     function _createPool(
         address token0,
         address token1
@@ -718,30 +875,34 @@ function liquidIndex(uint256 pool_id) public view returns (uint256){
             "Pair does not exists, Contact admin"
         );
 
+        // Check if pool already exists
         bool exists = _findPool(token0, token1) != 0;
         if (exists) return 0;
 
         POOL_ID++;
         Pool memory pool = pools[POOL_ID];
 
+        // Create new pool with empty liquids array
         pools[POOL_ID] = Pool(POOL_ID, token0, token1, pool.liquids);
 
         return POOL_ID;
     }
 
- 
+    // ============ MODIFIERS ============
 
-    // === Modifiers === //
-
+    /**
+     * @dev Restricts access to addresses that are not registered as providers
+     */
     modifier onlyGuest() {
         require(providers[msg.sender].id == 0, "Only Guest");
         _;
     }
 
+    /**
+     * @dev Restricts access to registered liquidity providers only
+     */
     modifier onlyProvider() {
         require(providers[msg.sender].id != 0, "Only Provider");
         _;
     }
-
-  
 }
