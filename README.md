@@ -13,7 +13,7 @@ The Swap contract is one of AfriRemit's core features, enabling users to:
 - Swap between native tokens and ERC20 tokens
 - Swap between different ERC20 tokens
 - Benefit from competitive exchange rates
-- Pay minimal transaction fees (0.20% on successful swaps)
+- Pay minimal transaction fees (0.020% on successful swaps)
 
 ### 💧 Liquidity Provision
 - Users can become liquidity providers and earn rewards
