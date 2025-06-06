@@ -74,7 +74,7 @@ Since Chainlink is not currently supported on Lisk Sepolia (where AfriRemit is d
 - **Reward Claims**: Withdraw earned rewards from liquidity provision
 
 ### Fee Structure
-- **Swap Fee**: 0.20% (20 basis points) per transaction
+- **Swap Fee**: 0.020% (20 basis points) per transaction
 - **Provider Rewards**: 80% of collected fees
 - **Platform Revenue**: 17% of collected fees
 - **Burn Mechanism**: 3% of collected fees (deflationary)
