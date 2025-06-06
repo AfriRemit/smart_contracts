@@ -10,7 +10,7 @@ AfriRemit is a multi-featured decentralized finance (DeFi) ecosystem that provid
 
 ### 🔄 Token Swapping
 The Swap contract is one of AfriRemit's core features, enabling users to:
-- Swap between native tokens and ERC20 tokens
+- Swap between native tokens and ERC20 tokens and vice-versa
 - Swap between different ERC20 tokens
 - Benefit from competitive exchange rates
 - Pay minimal transaction fees (0.020% on successful swaps)
