@@ -115,7 +115,7 @@ The AfriRemit price feed system is specifically designed to address the current 
 - **Reliable Operation**: Ensures consistent pricing despite oracle limitations
 
 ### Future Oracle Integration
-Since Chainlink and other major oracle providers are not yet available on Lisk Sepolia or Lisk Mainnet, the system is built with forward compatibility:
+Since Chainlink is not yet available on Lisk Sepolia or Lisk Mainnet, the system is built with forward compatibility:
 
 ```solidity
 // Ready for future oracle integration
@@ -136,15 +136,15 @@ function updateMockPrice(address _tokenAddress, int256 _newPrice) external onlyO
 
 ## Future Enhancements
 
-- **AFRC Stablecoin (Hybrid Collateralized: Fiat + Crypto)**
+- **AfriStable (AFX) Stablecoin (Hybrid Collateralized: Fiat + Crypto)**
   - Enables saving features
-  - Purchase AFRC stablecoin using:
+  - Purchase AFX stablecoin using:
     - **Fiat** (e.g., via stablecoins like USDC or through a fiat gateway for off-chain NGN)
     - **Crypto** (e.g., ETH, BTC, etc.)
     - **Or both**, in a defined ratio (e.g., 50% fiat / 50% crypto)
   - **Redeem and Burn** mechanism:
-    - Users return AFRO tokens to redeem collateral
-    - Upon burning AFRO:
+    - Users return AFX to redeem collateral
+    - Upon burning AFX:
       - They receive the original collateral mix  
       - Or choose payout in either **crypto** or **fiat** (based on initial deposit)
 
