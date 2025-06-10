@@ -44,8 +44,9 @@ contract Swap is OwnerIsCreator {
     /// @dev Accumulated fees designated for burning
     uint256 private _burnableFees;
 
-    /// @dev Swap fee percentage (0.20% = 20 basis points)
+    /// @dev Swap fee percentage (0.02% = 20 basis points)
     uint private swapFee = 20;
+    
 
     /// @dev Unique identifier counter for pools
     uint256 private POOL_ID;
@@ -194,6 +195,15 @@ contract Swap is OwnerIsCreator {
      */
     function liquidIndex(uint256 pool_id) public view returns (uint256) {
         return _liquidIndex(pool_id, msg.sender);
+    } 
+
+      /**
+     * @dev Gets Current Pool ID created
+ 
+     */
+
+    function getPoolId () public view returns (uint256) {
+        return POOL_ID;
     }
 
     /**

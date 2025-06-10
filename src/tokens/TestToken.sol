@@ -12,8 +12,8 @@ contract TestnetToken is ERC20Burnable {
 
 //    [LINK,  DAI, NEAR , COMP, TRX , AAVE]
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-        _mint(msg.sender, inWei(500));
-        _mint(address(this), inWei(500));
+        _mint(msg.sender, inWei(1000));
+        _mint(address(this), inWei(100000000));
     }
 
     // faucet minting for testing purposes
@@ -28,6 +28,17 @@ contract TestnetToken is ERC20Burnable {
         _approve(address(this), msg.sender, amount);
         transferFrom(address(this), msg.sender, amount);
     }
+
+
+  function buyToken(uint256 _amount) public {
+        uint256 amount = inWei(_amount);
+        require(amount > 0, "Amount cannot be zero");
+    
+        _approve(address(this), msg.sender, amount);
+        transferFrom(address(this), msg.sender, amount);
+    }
+
+   
 
 function approve(address spender, uint256 amount) public override returns (bool) {
     // Your custom logic here
@@ -55,12 +66,6 @@ function approve(address spender, uint256 amount) public override returns (bool)
     function inWei(uint256 amount) public view returns (uint256) {
         return amount * 10 ** decimals();
     }
-
-
-
- 
-
-
 
    
 }
