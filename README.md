@@ -10,10 +10,10 @@ AfriRemit is a multi-featured decentralized finance (DeFi) ecosystem that provid
 
 ### 🔄 Token Swapping
 The Swap contract is one of AfriRemit's core features, enabling users to:
-- Swap between native tokens and ERC20 tokens
+- Swap between native tokens and ERC20 tokens and vice-versa
 - Swap between different ERC20 tokens
 - Benefit from competitive exchange rates
-- Pay minimal transaction fees (0.20% on successful swaps)
+- Pay minimal transaction fees (0.020% on successful swaps)
 
 ### 💧 Liquidity Provision
 - Users can become liquidity providers and earn rewards
@@ -74,7 +74,7 @@ Since Chainlink is not currently supported on Lisk Sepolia (where AfriRemit is d
 - **Reward Claims**: Withdraw earned rewards from liquidity provision
 
 ### Fee Structure
-- **Swap Fee**: 0.20% (20 basis points) per transaction
+- **Swap Fee**: 0.020% (20 basis points) per transaction
 - **Provider Rewards**: 80% of collected fees
 - **Platform Revenue**: 17% of collected fees
 - **Burn Mechanism**: 3% of collected fees (deflationary)
@@ -115,7 +115,7 @@ The AfriRemit price feed system is specifically designed to address the current 
 - **Reliable Operation**: Ensures consistent pricing despite oracle limitations
 
 ### Future Oracle Integration
-Since Chainlink and other major oracle providers are not yet available on Lisk Sepolia or Lisk Mainnet, the system is built with forward compatibility:
+Since Chainlink is not yet available on Lisk Sepolia or Lisk Mainnet, the system is built with forward compatibility:
 
 ```solidity
 // Ready for future oracle integration
@@ -136,15 +136,15 @@ function updateMockPrice(address _tokenAddress, int256 _newPrice) external onlyO
 
 ## Future Enhancements
 
-- **AFRC Stablecoin (Hybrid Collateralized: Fiat + Crypto)**
+- **AfriStable (AFX) Stablecoin (Hybrid Collateralized: Fiat + Crypto)**
   - Enables saving features
-  - Purchase AFRC stablecoin using:
+  - Purchase AFX stablecoin using:
     - **Fiat** (e.g., via stablecoins like USDC or through a fiat gateway for off-chain NGN)
     - **Crypto** (e.g., ETH, BTC, etc.)
     - **Or both**, in a defined ratio (e.g., 50% fiat / 50% crypto)
   - **Redeem and Burn** mechanism:
-    - Users return AFRO tokens to redeem collateral
-    - Upon burning AFRO:
+    - Users return AFX to redeem collateral
+    - Upon burning AFX:
       - They receive the original collateral mix  
       - Or choose payout in either **crypto** or **fiat** (based on initial deposit)
 
