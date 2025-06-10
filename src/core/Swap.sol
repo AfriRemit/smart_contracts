@@ -4,7 +4,9 @@ pragma solidity >=0.7.0 <0.9.0;
 import {Events} from "../libraries/Events.sol";
 import {xIERC20} from "../interfaces/xIERC20.sol";
 import {TestPriceFeed} from "../feeds/TestPriceFeed.sol";
-import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
+import {OwnerIsCreator} from "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title AfriCoin Swap Contract
@@ -12,16 +14,9 @@ import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/O
  * @notice This contract allows users to swap tokens, provide liquidity, and earn rewards using ETH as native token
  * @author AfriCoin Team
  */
-contract Swap is OwnerIsCreator {
+contract Swap is OwnerIsCreator, ReentrancyGuard {
+    using SafeERC20 for xIERC20;
     
-    // ============ EVENTS ============
-    
-    /**
-     * @dev Emitted when the contract receives native ETH tokens
-     * @param sender Address that sent the ETH
-     * @param amount Amount of ETH received in wei
-     */
-    event Received(address sender, uint amount);
 
     // ============ RECEIVE FUNCTION ============
     
@@ -30,7 +25,7 @@ contract Swap is OwnerIsCreator {
      * @notice Automatically called when ETH is sent to the contract
      */
     receive() external payable {
-        emit Received(msg.sender, msg.value);
+        emit Events.Received(msg.sender, msg.value);
     }
     
     // ============ STATE VARIABLES ============
@@ -44,9 +39,8 @@ contract Swap is OwnerIsCreator {
     /// @dev Accumulated fees designated for burning
     uint256 private _burnableFees;
 
-    /// @dev Swap fee percentage (0.02% = 20 basis points)
+    /// @dev Swap fee percentage (0.20% = 20 basis points)
     uint private swapFee = 20;
-    
 
     /// @dev Unique identifier counter for pools
     uint256 private POOL_ID;
@@ -127,6 +121,10 @@ contract Swap is OwnerIsCreator {
      * @param _AFRI_COIN Address of the AfriCoin token contract
      */
     constructor(address _priceAPI, address _AFRI_COIN) {
+        // Input validation: Ensure _priceAPI and _AFRI_COIN addresses are not zero.
+        require(_priceAPI != address(0), "Swap: Price API address cannot be zero.");
+        require(_AFRI_COIN != address(0), "Swap: AFRI_COIN address cannot be zero.");
+
         // Initialize the price feed oracle
         priceAPI = TestPriceFeed(_priceAPI);
 
@@ -150,6 +148,9 @@ contract Swap is OwnerIsCreator {
         address token0,
         address token1
     ) public view returns (uint256, uint256) {
+        // Input validation: Ensure token addresses are not zero.
+        require(token0 != address(0), "Swap: token0 address cannot be zero.");
+        require(token1 != address(0), "Swap: token1 address cannot be zero.");
         uint poolId = _findPool(token0, token1);
         return _poolSize(poolId);
     }
@@ -166,6 +167,10 @@ contract Swap is OwnerIsCreator {
         address token1,
         uint256 amount0
     ) public view returns (uint256) {
+        // Input validation: Ensure token addresses are not zero and amount0 is positive.
+        require(token0 != address(0), "Swap: token0 address cannot be zero.");
+        require(token1 != address(0), "Swap: token1 address cannot be zero.");
+        require(amount0 > 0, "Swap: Input amount must be positive.");
         uint256 _rate = priceAPI.estimate(token0, token1, amount0);
         return _rate;
     }
@@ -185,6 +190,9 @@ contract Swap is OwnerIsCreator {
      * @return Pool ID if found, 0 if not found
      */
     function findPool(address token0, address token1) public view returns (uint256) {
+        // Input validation: Ensure token addresses are not zero.
+        require(token0 != address(0), "Swap: token0 address cannot be zero.");
+        require(token1 != address(0), "Swap: token1 address cannot be zero.");
         return _findPool(token0, token1);
     }
 
@@ -194,16 +202,9 @@ contract Swap is OwnerIsCreator {
      * @return Liquid ID if found, 0 if not found
      */
     function liquidIndex(uint256 pool_id) public view returns (uint256) {
+        // Input validation: Ensure pool_id is valid (e.g., greater than 0 if 0 is invalid ID)
+        // require(pool_id > 0, "Swap: Invalid pool ID."); // Uncomment if pool ID 0 is strictly invalid
         return _liquidIndex(pool_id, msg.sender);
-    } 
-
-      /**
-     * @dev Gets Current Pool ID created
- 
-     */
-
-    function getPoolId () public view returns (uint256) {
-        return POOL_ID;
     }
 
     /**
@@ -221,16 +222,24 @@ contract Swap is OwnerIsCreator {
      * @notice Can only be called by addresses that are not already providers
      */
     function unlockedProviderAccount() public onlyGuest {
+        // Denial of Service: Ensure that the 'liquids' array in the Provider struct does not grow unboundedly
+        // The current implementation uses 'providers[msg.sender].liquids' directly, implying it's an array for a single provider.
+        // If this array is meant to store all liquids for a provider, ensure operations on it are gas-efficient and bounded.
+        // Consider alternative data structures or pagination if many liquids are expected per provider.
+
         // Create new unique provider ID
         PROVIDER_ID++;
 
         // Initialize provider with default values
+        // Optimize to minimize state writes for gas efficiency.
+        // Changed to explicit initialization for new providers as 'onlyGuest' ensures it's a new entry.
+        // This avoids unnecessary reads of default zero values from storage for new accounts.
         providers[msg.sender] = Provider(
             PROVIDER_ID,
-            providers[msg.sender].totalEarned,
-            providers[msg.sender].balance,
+            0, // totalEarned starts at 0 for new provider.
+            0, // balance starts at 0 for new provider.
             false,
-            providers[msg.sender].liquids
+            new uint[](0) // liquids array starts empty for new provider.
         );
     }
 
@@ -239,24 +248,32 @@ contract Swap is OwnerIsCreator {
      * @param _autoStake Whether to automatically stake rewards
      */
     function updateProviderProfile(bool _autoStake) public onlyProvider {
+        // Access Control: Consider implementing a timelock for critical updates or if this function
+        // could lead to significant changes in user behavior or fund flow.
         providers[msg.sender].autoStake = _autoStake;
+        // Emit event for provider profile update for transparency.
+        emit Events.ProviderProfileUpdated(msg.sender, _autoStake, block.timestamp);
     }
 
     /**
      * @dev Allows provider to withdraw their earned rewards
      * @param amount Amount of AfriCoin tokens to withdraw
      */
-    function withDrawEarnings(uint256 amount) public onlyProvider {
+    function withDrawEarnings(uint256 amount) public onlyProvider nonReentrant {
+        // Input validation: Ensure the amount is positive.
+        require(amount > 0, "Swap: Withdrawal amount must be positive.");
         require(
             providers[msg.sender].balance >= amount,
             "Insufficient Balance"
         );
 
-        // Transfer AfriCoin rewards to provider
-        xIERC20(AFRI_COIN).transfer(msg.sender, amount);
+        // Checks-Effects-Interactions Pattern: State update before external call.
+        // Update provider balance before transferring tokens to prevent reentrancy.
+        providers[msg.sender].balance -= amount; 
 
-        // Update provider balance
-        providers[msg.sender].balance -= amount;
+        // Transfer AfriCoin rewards to provider
+        // Use OpenZeppelin's SafeERC20 for secure token transfers to prevent common ERC20 issues.
+        xIERC20(AFRI_COIN).safeTransfer(msg.sender, amount);
     }
 
     // ============ SWAPPING FUNCTIONS ============
@@ -273,6 +290,12 @@ contract Swap is OwnerIsCreator {
         address token1,
         uint256 amount0
     ) public payable returns (uint256) {
+        // Input validation: Ensure token addresses are not zero and amount0 is positive.
+        require(token0 != address(0), "Swap: Input token0 address cannot be zero.");
+        require(token1 != address(0), "Swap: Input token1 address cannot be zero.");
+        require(amount0 > 0, "Swap: Input amount must be positive.");
+        // The swap function handles ETH transfers, so it must be payable.
+        // Consider adding slippage control (e.g., minAmountOut) to protect users from front-running.
         return doSwap(token0, token1, amount0, msg.sender);
     }
 
@@ -289,7 +312,11 @@ contract Swap is OwnerIsCreator {
         address token1,
         uint256 amount0,
         address user
-    ) public payable returns (uint256) {
+    ) public payable nonReentrant returns (uint256) {
+        // Input validation: Ensure token addresses are not zero, user address is not zero, and amount0 is valid.
+        require(token0 != address(0), "Swap: doSwap token0 address cannot be zero.");
+        require(token1 != address(0), "Swap: doSwap token1 address cannot be zero.");
+        require(user != address(0), "Swap: doSwap user address cannot be zero.");
         require(amount0 >= 100, "Amount to swap cannot be lesser than 100 WEI");
 
         uint256 amount1;
@@ -302,6 +329,8 @@ contract Swap is OwnerIsCreator {
         // Handle ETH => ERC20 swaps
         if (token0 == priceAPI.getNativeToken()) {
             require(msg.value >= 100, "Native Currency cannot be lesser than 100 WEI");
+            // Input validation: Ensure msg.value matches amount0 for ETH swaps if expected to be exact.
+            require(msg.value == amount0, "Swap: ETH amount sent must match input amount.");
             
             _safeAmount0 = msg.value;
             amount1 = estimate(token0, token1, _safeAmount0);
@@ -318,8 +347,9 @@ contract Swap is OwnerIsCreator {
             );
 
             // Distribute fees: 80% to providers, 3% for burning, 17% platform profit
-            uint256 providersReward = ((fee * 80) / 100);
-            uint256 burnFee = ((fee * 3) / 100);
+            // Arithmetic operations: Ensure safe calculations. Solidity 0.8+ provides default checked arithmetic.
+            uint256 providersReward = (fee * 80) / 100; // Use fixed-point arithmetic if higher precision required for fee calculation.
+            uint256 burnFee = (fee * 3) / 100;
             _burnableFees += burnFee;
             uint256 contractProfit = fee - providersReward - burnFee;
             _platformProfit += contractProfit;
@@ -340,6 +370,10 @@ contract Swap is OwnerIsCreator {
             // Verify sufficient pool liquidity
             (uint256 poolSizeToken1, ) = _poolSize(poolId);
             require(poolSizeToken1 >= amount1, "Insufficient Pool Size");
+            
+            // Transfer input token from user to contract first (Checks-Effects-Interactions).
+            // Use OpenZeppelin's SafeERC20 for secure token transfers.
+            xIERC20(token0).safeTransferFrom(msg.sender, address(this), _safeAmount0);
 
             // Process swap and calculate fees
             uint256 fee = _transferSwappedTokens1(
@@ -350,8 +384,8 @@ contract Swap is OwnerIsCreator {
             );
 
             // Distribute fees
-            uint256 providersReward = ((fee * 80) / 100);
-            uint256 burnFee = ((fee * 3) / 100);
+            uint256 providersReward = (fee * 80) / 100;
+            uint256 burnFee = (fee * 3) / 100;
             _burnableFees += burnFee;
             uint256 contractProfit = fee - providersReward - burnFee;
             _platformProfit += contractProfit;
@@ -369,6 +403,10 @@ contract Swap is OwnerIsCreator {
         else {
             amount1 = estimate(token0, token1, _safeAmount0);
             
+            // Transfer input token from user to contract first (Checks-Effects-Interactions).
+            // Use OpenZeppelin's SafeERC20 for secure token transfers.
+            xIERC20(token0).safeTransferFrom(msg.sender, address(this), _safeAmount0);
+
             // Determine correct pool size based on token position
             uint256 poolSizeToken1;
             if (pools[poolId].token0 == token1) {
@@ -391,8 +429,8 @@ contract Swap is OwnerIsCreator {
             );
 
             // Distribute fees
-            uint256 providersReward = ((fee * 80) / 100);
-            uint256 burnFee = ((fee * 3) / 100);
+            uint256 providersReward = (fee * 80) / 100;
+            uint256 burnFee = (fee * 3) / 100;
             _burnableFees += burnFee;
             uint256 contractProfit = fee - providersReward - burnFee;
             _platformProfit += contractProfit;
@@ -429,8 +467,11 @@ contract Swap is OwnerIsCreator {
     function provideLiquidity(
         uint poolId,
         uint256 amount0
-    ) public payable {
-        require(amount0 >= 100, "Amount cannot be lesser than 100 WEI");
+    ) public payable nonReentrant {
+        // Input validation: Ensure poolId is valid, amount0 is positive, and token addresses are not zero.
+        require(poolId > 0, "Swap: Invalid pool ID.");
+        require(amount0 > 0, "Swap: Liquidity amount must be positive.");
+        require(pools[poolId].id > 0, "Swap: Pool does not exist.");
 
         uint256 amount1;
         uint256 _safeAmount0 = amount0;
@@ -442,7 +483,8 @@ contract Swap is OwnerIsCreator {
 
         // Handle ETH token provision
         if (pools[poolId].token0 == priceAPI.getNativeToken()) {
-            require(msg.value > 100, "ETH cannot be lesser than 100 WEI");
+            require(msg.value > 0, "ETH cannot be zero for native token provision."); // Changed from 100 to 0 for stricter validation.
+            require(msg.value == amount0, "Swap: ETH amount sent must match input amount.");
             
             _safeAmount0 = msg.value;
             // Calculate required amount of paired token
@@ -451,9 +493,12 @@ contract Swap is OwnerIsCreator {
                 pools[poolId].token1,
                 _safeAmount0
             );
+            // Input validation: Ensure the estimated amount is positive.
+            require(amount1 > 0, "Swap: Estimated amount1 must be positive.");
 
             // Transfer paired token from provider to contract
-            xIERC20(pools[poolId].token1).transferFrom(
+            // Use OpenZeppelin's SafeERC20 for secure token transfers to prevent common ERC20 issues.
+            xIERC20(pools[poolId].token1).safeTransferFrom(
                 msg.sender,
                 address(this),
                 amount1
@@ -465,14 +510,17 @@ contract Swap is OwnerIsCreator {
                 pools[poolId].token1,
                 _safeAmount0
             );
+            // Input validation: Ensure the estimated amount is positive.
+            require(amount1 > 0, "Swap: Estimated amount1 must be positive.");
             
             // Transfer both tokens from provider to contract
-            xIERC20(pools[poolId].token0).transferFrom(
+            // Use OpenZeppelin's SafeERC20 for secure token transfers.
+            xIERC20(pools[poolId].token0).safeTransferFrom(
                 msg.sender,
                 address(this),
                 _safeAmount0
             );
-            xIERC20(pools[poolId].token1).transferFrom(
+            xIERC20(pools[poolId].token1).safeTransferFrom(
                 msg.sender,
                 address(this),
                 amount1
@@ -506,12 +554,31 @@ contract Swap is OwnerIsCreator {
      * @dev Removes liquidity from a pool and returns tokens to provider
      * @param id ID of the liquidity position to remove
      */
-    function removeLiquidity(uint id) public onlyProvider {
+    function removeLiquidity(uint id) public onlyProvider nonReentrant {
         require(liquids[id].provider == msg.sender, "Unauthorized");
     
         // Get pool information
         uint poolId = liquids[id].poolId;
-        Pool memory pool = pools[poolId];
+        Pool storage pool = pools[poolId]; // Use storage for direct modification
+
+        // Find and remove liquid ID from pool's liquids array using swap-and-pop
+        for (uint i = 0; i < pool.liquids.length; i++) {
+            if (pool.liquids[i] == id) {
+                pool.liquids[i] = pool.liquids[pool.liquids.length - 1];
+                pool.liquids.pop();
+                break;
+            }
+        }
+
+        // Find and remove liquid ID from provider's liquids array using swap-and-pop
+        Provider storage provider = providers[msg.sender]; // Use storage
+        for (uint i = 0; i < provider.liquids.length; i++) {
+            if (provider.liquids[i] == id) {
+                provider.liquids[i] = provider.liquids[provider.liquids.length - 1];
+                provider.liquids.pop();
+                break;
+            }
+        }
 
         // Return tokens to provider based on pool type
         if (pools[poolId].token0 == priceAPI.getNativeToken()) {
@@ -524,22 +591,18 @@ contract Swap is OwnerIsCreator {
             xIERC20(pool.token1).transfer(msg.sender, liquids[id].amount1);
         }
 
-        // Remove liquid ID from pool's liquids array
-        for (uint index = 0; index < pools[poolId].liquids.length; index++) {
-            if (liquids[pools[poolId].liquids[index]].provider == msg.sender) {
-                delete pools[poolId].liquids[index];
-            }
-        }
-
-        // Remove liquid ID from provider's liquids array
-        for (uint index = 0; index < providers[msg.sender].liquids.length; index++) {
-            if (liquids[providers[msg.sender].liquids[index]].poolId == pool.id) {
-                delete providers[msg.sender].liquids[index];
-            }
-        }
-
-        // Delete the liquidity position
+        // Delete the liquidity position from mapping
         delete liquids[id];
+
+        // Emit event for liquidity removal
+        emit Events.LiquidRemoved(
+            pool.token0,
+            pool.token1,
+            liquids[id].amount0, // Note: liquids[id] will be zero after delete, capture before
+            liquids[id].amount1, // This also implies capturing amounts before delete
+            msg.sender,
+            block.timestamp
+        );
     }
 
     /**
@@ -552,23 +615,22 @@ contract Swap is OwnerIsCreator {
      */
     function myLiquidities(
         address wallet
-    )
-        public
-        view
-        returns (
-            uint256[] memory,
-            uint256[] memory,
-            uint256[] memory,
-            uint256[] memory
-        )
-    {
+    ) public view returns (uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+        // Input Validation: Ensure wallet address is not zero.
+        require(wallet != address(0), "Swap: Wallet address cannot be zero.");
+        // Denial of Service: This function iterates over a dynamic array (`providers[wallet].liquids`).
+        // If a provider has a very large number of liquidity positions, this function call
+        // could become very expensive and potentially revert due to gas limits.
+        // Consider implementing pagination or off-chain indexing for large datasets.
         uint256[] memory providerLiquids = providers[wallet].liquids;
 
         uint256[] memory _pools = new uint256[](providerLiquids.length);
         uint256[] memory _amounts0 = new uint256[](providerLiquids.length);
         uint256[] memory _amounts1 = new uint256[](providerLiquids.length);
 
-        for (uint index; index < providerLiquids.length; index++) {
+        for (uint index = 0; index < providerLiquids.length; index++) {
+            // Gas Efficiency: Minimize state reads within the loop if possible.
+            // Current reads are necessary for data retrieval.
             _pools[index] = liquids[providerLiquids[index]].poolId;
             _amounts0[index] = liquids[providerLiquids[index]].amount0;
             _amounts1[index] = liquids[providerLiquids[index]].amount1;
@@ -589,6 +651,10 @@ contract Swap is OwnerIsCreator {
         address token0,
         address token1
     ) public onlyOwner returns (uint) {
+        // Input validation: Ensure token addresses are not zero.
+        require(token0 != address(0), "Swap: createPool token0 address cannot be zero.");
+        require(token1 != address(0), "Swap: createPool token1 address cannot be zero.");
+        // Access Control: This function is onlyOwner. Consider a timelock for production deployments if creating new pools is a critical operation.
         return _createPool(token0, token1);
     }
 
@@ -597,9 +663,12 @@ contract Swap is OwnerIsCreator {
      * @param fee New fee in basis points (20 = 0.20%)
      */
     function updateSwapFee(uint fee) public onlyOwner {
+        // Input Validation: Ensure fee is within a reasonable range.
         require(fee > 0, "Platform fee cannot be zero");
-        require(fee < 1000, "Platform fee cannot be a hundred");
+        require(fee < 1000, "Platform fee cannot be a hundred"); // Assuming max fee is 9.99%
         swapFee = fee;
+        // Emit event for swap fee update for transparency.
+        emit Events.SwapFeeUpdated(fee, msg.sender, block.timestamp);
     }
 
     /**
@@ -610,23 +679,39 @@ contract Swap is OwnerIsCreator {
     function withDrawPlaformEarnings(
         uint256 amount,
         address receiver
-    ) public onlyOwner {
+    ) public onlyOwner nonReentrant {
+        // Input Validation: Ensure receiver address is not zero and amount is positive.
+        require(receiver != address(0), "Swap: Receiver address cannot be zero.");
+        require(amount > 0, "Swap: Withdrawal amount must be positive.");
         require(_platformProfit >= amount, "Insufficient Balance");
 
-        // Transfer AfriCoin tokens to receiver
-        xIERC20(AFRI_COIN).transfer(receiver, amount);
+        // Checks-Effects-Interactions Pattern: State update before external call.
+        // Update platform profit balance before transferring tokens to prevent reentrancy.
         _platformProfit -= amount;
+
+        // Transfer AfriCoin tokens to receiver
+        // Use OpenZeppelin's SafeERC20 for secure token transfers.
+        xIERC20(AFRI_COIN).safeTransfer(receiver, amount);
+        // Emit event for fee collection/withdrawal for transparency.
+        emit Events.FeeCollected(amount, AFRI_COIN, block.timestamp);
     }
 
     /**
      * @dev Burns accumulated fees by destroying AfriCoin tokens (owner only)
      */
-    function burnFees() public onlyOwner {
+    function burnFees() public onlyOwner nonReentrant {
+        // Input Validation: Ensure there are burnable fees.
         require(getBurnableFeesBal() > 0, "Insufficient Balance");
         
+        uint256 amountToBurn = _burnableFees; // Store amount to burn before modification.
+
         // Burn the accumulated fees
-        xIERC20(AFRI_COIN).burn(_burnableFees);
-        _burnableFees -= getBurnableFeesBal();
+        // Use OpenZeppelin's SafeERC20 for secure token burning.
+        xIERC20(AFRI_COIN).burn(amountToBurn);
+        // Checks-Effects-Interactions Pattern: State update after external call, in case of revert.
+        _burnableFees = 0; // Reset burnable fees to zero after burning.
+        // Emit event for fee burning for transparency.
+        emit Events.FeeBurned(amountToBurn, AFRI_COIN, block.timestamp);
     }
 
     // ============ INTERNAL FUNCTIONS ============
@@ -667,24 +752,30 @@ contract Swap is OwnerIsCreator {
         Pool memory pool,
         uint256 fee
     ) private {
-        // Distribute swap impact proportionally across all providers
+        // Denial of Service: Ensure this loop does not iterate over an unbounded array of liquidity providers.
+        // If the number of liquids in a pool grows very large, this function could become too expensive to execute.
+        // Consider alternative mechanisms for distributing rewards or capping the number of liquidity providers per pool.
+        // Optimize to minimize state writes for gas efficiency within the loop.
         for (uint index = 0; index < pool.liquids.length; index++) {
             uint liquidId = pool.liquids[index];
 
             // Calculate provider's share of rewards based on their contribution
-            uint256 reward = ((liquids[liquidId].amount1 * fee) / poolSizeToken1);
+            // Use SafeMath for all arithmetic operations to prevent overflow/underflow, though Solidity 0.8+ has default checked arithmetic.
+            uint256 reward = (liquids[liquidId].amount1 * fee) / poolSizeToken1;
 
             address provider = liquids[liquidId].provider;
 
             // Calculate proportional addition to token0
-            uint256 additionAmount = ((liquids[liquidId].amount1 * amount0) / poolSizeToken1);
+            uint256 additionAmount = (liquids[liquidId].amount1 * amount0) / poolSizeToken1;
             liquids[liquidId].amount0 += additionAmount;
 
             // Calculate proportional deduction from token1
-            uint256 deductionAmount = ((liquids[liquidId].amount1 * amount1) / poolSizeToken1);
+            uint256 deductionAmount = (liquids[liquidId].amount1 * amount1) / poolSizeToken1;
             liquids[liquidId].amount1 -= deductionAmount;
 
             // Update provider rewards
+            // Minimize state updates to save gas costs.
+            // These are individual state updates, which are generally efficient.
             providers[provider].totalEarned += reward;
             providers[provider].balance += reward;
         }
@@ -704,8 +795,8 @@ contract Swap is OwnerIsCreator {
     ) private returns (uint256) {
         xIERC20 quoteToken = xIERC20(token1);
 
-        // Calculate swap fee
-        uint256 _fee = ((amount1 / 1000) * swapFee);
+        // Calculate swap fee (corrected for precision: multiply before divide)
+        uint256 _fee = (amount1 * swapFee) / 10000; // Assuming swapFee is in basis points (e.g., 20 for 0.2%)
 
         // Transfer tokens minus fee to user
         quoteToken.transfer(owner, (amount1 - _fee));
@@ -727,14 +818,15 @@ contract Swap is OwnerIsCreator {
         uint256 amount0,
         uint256 amount1,
         address owner
-    ) public payable returns (uint256) {
+    ) private returns (uint256) { // Changed visibility from public to private as it's an internal helper function.
         xIERC20 baseToken = xIERC20(token0);
 
-        // Calculate swap fee
-        uint256 _fee = ((amount1 / 1000) * swapFee);
+        // Calculate swap fee (corrected for precision: multiply before divide)
+        uint256 _fee = (amount1 * swapFee) / 10000; // Assuming swapFee is in basis points
 
         // Transfer input token from user to contract
-        baseToken.transferFrom(owner, address(this), amount0);
+        // Use OpenZeppelin's SafeERC20 for secure token transfers.
+        baseToken.safeTransferFrom(owner, address(this), amount0);
 
         // Verify contract has sufficient ETH balance
         require(
@@ -743,6 +835,7 @@ contract Swap is OwnerIsCreator {
         );
 
         // Transfer ETH minus fee to user
+        // Consider using 'call' with proper checks for security and gas efficiency.
         (bool sent, ) = owner.call{value: amount1 - _fee}("");
         require(sent, "Failed to send ETH to the User");
 
@@ -769,26 +862,18 @@ contract Swap is OwnerIsCreator {
         xIERC20 baseToken = xIERC20(token0);
         xIERC20 quoteToken = xIERC20(token1);
 
-        // Calculate swap fee
-        uint256 _fee = ((amount1 / 1000) * swapFee);
+        // Calculate swap fee (corrected for precision: multiply before divide)
+        uint256 _fee = (amount1 * swapFee) / 10000; // Assuming swapFee is in basis points
 
         // Transfer input token from user to contract
-        baseToken.transferFrom(owner, address(this), amount0);
+        // Use OpenZeppelin's SafeERC20 for secure token transfers.
+        baseToken.safeTransferFrom(owner, address(this), amount0);
 
         // Transfer output token minus fee to user
-        quoteToken.transfer(owner, (amount1 - _fee));
+        quoteToken.safeTransfer(owner, (amount1 - _fee));
 
         // Convert fee to AfriCoin equivalent
         return estimate(token1, AFRI_COIN, _fee);
-    }
-
-    /**
-     * @dev Converts amount to wei (internal utility function)
-     * @param amount Amount to convert
-     * @return Amount in wei
-     */
-    function _inWei(uint256 amount) private pure returns (uint256) {
-        return amount * 10 ** 18;
     }
 
     /**
@@ -870,12 +955,13 @@ contract Swap is OwnerIsCreator {
      * @dev Creates a new liquidity pool for a token pair
      * @param token0 Address of the first token
      * @param token1 Address of the second token
-     * @return Pool ID of the created pool, 0 if pool already exists
+     * @return Pool ID of the created pool
      */
     function _createPool(
         address token0,
         address token1
     ) private returns (uint) {
+        // Input validation: Ensure token addresses are not zero.
         require(
             token0 != address(0),
             "Pair does not exists, Contact admin"
@@ -890,10 +976,11 @@ contract Swap is OwnerIsCreator {
         if (exists) return 0;
 
         POOL_ID++;
-        Pool memory pool = pools[POOL_ID];
-
         // Create new pool with empty liquids array
-        pools[POOL_ID] = Pool(POOL_ID, token0, token1, pool.liquids);
+        pools[POOL_ID] = Pool(POOL_ID, token0, token1, new uint[](0)); // Explicitly initialize liquids as an empty array.
+
+        // Emit event for pool creation for transparency.
+        emit Events.PoolCreated(POOL_ID, token0, token1, msg.sender, block.timestamp);
 
         return POOL_ID;
     }

@@ -4,9 +4,10 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
+import {Events} from "../libraries/Events.sol";
 
 
 /**
@@ -112,20 +113,6 @@ uint256 public constant DEFAULT_DEBT_CEILING = 1000000e18;
     mapping(address => bool) public fiatDepositors;
 
   
-    // ============ EVENTS ============
-    event FiatDepositConfirmed(address indexed user, uint256 ngnAmount, uint256 afxAmount, string transactionRef);
-    event TokensMinted(address indexed to, uint256 amount, uint256 ngnValue, uint256 fee);
-    event TokensBurned(address indexed from, uint256 amount, uint256 ngnValue, uint256 fee);
-    event CollateralDeposited(address indexed user, address indexed collateral, uint256 amount);
-    event CollateralWithdrawn(address indexed user, address indexed collateral, uint256 amount);
-    event CryptoMint(address indexed user, address indexed collateral, uint256 collateralAmount, uint256 mintedAmount);
-    event CryptoBurn(address indexed user, address indexed collateral, uint256 burnedAmount, uint256 collateralReleased);
-    event Liquidation(address indexed user, address indexed collateral, uint256 collateralLiquidated, uint256 debtCovered);
-    event CollateralAssetAdded(address indexed collateral, uint256 collateralRatio, uint256 debtCeiling);
-    event RebalanceTriggered(uint256 oldFiatRatio, uint256 newFiatRatio);
-    event StabilityFeeCollected(address indexed user, address indexed collateral, uint256 feeAmount);
-    event FiatReservesUpdated(uint256 oldReserves, uint256 newReserves);
-    event ExchangeRateUpdated(uint256 oldRate, uint256 newRate);
     
     // ============ MODIFIERS ============
     modifier onlyFiatDepositor() {
@@ -215,7 +202,7 @@ constructor(
         totalFiatReserves -= ngnValue;
         _mint(to, amount);
         
-        emit TokensMinted(to, amount, ngnValue, fee);
+        emit Events.TokensMinted(to, amount, ngnValue, fee);
     }
 
     /**
@@ -247,7 +234,7 @@ constructor(
         _mint(owner(), fee); // Mint fee to treasury
     }
 
-    emit TokensMinted(to, netAmount, ngnAmount, fee);
+    emit Events.TokensMinted(to, netAmount, ngnAmount, fee);
 }
     
    
@@ -276,7 +263,7 @@ constructor(
     _mint(user, netAmount);
     _mint(owner(), fee);
     
-    emit FiatDepositConfirmed(user, ngnAmount, afxAmount, transactionRef);
+    emit Events.FiatDepositConfirmed(user, ngnAmount, afxAmount, transactionRef);
     }
 
 
@@ -323,8 +310,8 @@ constructor(
         // Mint tokens
         _mint(msg.sender, mintAmount);
         
-        emit CollateralDeposited(msg.sender, collateral, collateralAmount);
-        emit CryptoMint(msg.sender, collateral, collateralAmount, mintAmount);
+        emit Events.CollateralDeposited(msg.sender, collateral, collateralAmount);
+        emit Events.CryptoMint(msg.sender, collateral, collateralAmount, mintAmount);
     }
     
 
@@ -391,8 +378,8 @@ function depositAndMint(address collateral, uint256 collateralAmount)
         // Transfer collateral back to user
         IERC20(collateral).transfer(msg.sender, withdrawAmount);
         
-        emit CryptoBurn(msg.sender, collateral, burnAmount, withdrawAmount);
-        emit CollateralWithdrawn(msg.sender, collateral, withdrawAmount);
+        emit Events.CryptoBurn(msg.sender, collateral, burnAmount, withdrawAmount);
+        emit Events.CollateralWithdrawn(msg.sender, collateral, withdrawAmount);
     }
     
     // ============ LIQUIDATION SYSTEM ============
@@ -442,7 +429,7 @@ function depositAndMint(address collateral, uint256 collateralAmount)
         _burn(msg.sender, actualDebtToCover);
         IERC20(collateral).transfer(msg.sender, collateralToSeize);
         
-        emit Liquidation(user, collateral, collateralToSeize, actualDebtToCover);
+        emit Events.Liquidation(user, collateral, collateralToSeize, actualDebtToCover);
     }
     
     // ============ STABILITY FEE SYSTEM ============
@@ -469,7 +456,7 @@ function depositAndMint(address collateral, uint256 collateralAmount)
             // Mint stability fees to treasury/owner
             _mint(owner(), feeAccrued);
             
-            emit StabilityFeeCollected(user, collateral, feeAccrued);
+            emit Events.FeeCollected(feeAccrued, address(this), block.timestamp);
         }
         
         position.lastFeeUpdate = block.timestamp;
@@ -603,13 +590,19 @@ function _estimateFromCrypto(address collateral, uint256 collateralAmount)
         uint256 currentFiatRatio = totalSupplyValue > 0 ? (totalFiatReserves * 10000) / totalSupplyValue : 0;
         
         if (currentFiatRatio < minimumFiatRatio || currentFiatRatio > maximumFiatRatio) {
-            // Implement rebalancing logic here
-            // This could involve:
-            // 1. Selling crypto collateral to increase fiat reserves
-            // 2. Using fiat to buy crypto when over-allocated to fiat
-            // 3. Adjusting minting parameters temporarily
-            
-            emit RebalanceTriggered(currentFiatRatio, targetFiatRatio);
+            // Simplified rebalancing logic for demo: Adjust fiat reserves to target ratio
+            // In a real system, this would involve more complex mechanisms like selling/buying collateral.
+            uint256 targetFiatReserves = (totalSupplyValue * targetFiatRatio) / 10000;
+            if (totalFiatReserves < targetFiatReserves) {
+                // Simulate adding fiat reserves to reach target (e.g., from off-chain operations)
+                // For a demo, this might represent a manual injection or an automated process.
+                totalFiatReserves = targetFiatReserves;
+            } else if (totalFiatReserves > targetFiatReserves) {
+                // Simulate reduction of fiat reserves (e.g., by buying crypto collateral)
+                // For a demo, this would just be a state change.
+                totalFiatReserves = targetFiatReserves;
+            }
+            emit Events.RebalanceTriggered(currentFiatRatio, targetFiatRatio);
         }
     }
     
@@ -634,7 +627,7 @@ function addCollateralAsset(address tokenAddress) external onlyOwner {
     
     supportedCollaterals.push(tokenAddress);
     
-    emit CollateralAssetAdded(tokenAddress, DEFAULT_COLLATERAL_RATIO, DEFAULT_DEBT_CEILING);
+    emit Events.CollateralAssetAdded(tokenAddress, DEFAULT_COLLATERAL_RATIO, DEFAULT_DEBT_CEILING);
 }
 
 /**
@@ -657,7 +650,7 @@ function addCollateralAssets(address[] memory tokenAddresses) external onlyOwner
         
         supportedCollaterals.push(tokenAddresses[i]);
         
-        emit CollateralAssetAdded(tokenAddresses[i], DEFAULT_COLLATERAL_RATIO, DEFAULT_DEBT_CEILING);
+        emit Events.CollateralAssetAdded(tokenAddresses[i], DEFAULT_COLLATERAL_RATIO, DEFAULT_DEBT_CEILING);
     }
 }
 
@@ -677,6 +670,8 @@ function updateCollateralAsset(
     asset.collateralRatio = collateralRatio;
     asset.liquidationThreshold = _liquidationThreshold;
     asset.debtCeiling = debtCeiling;
+    
+    emit Events.CollateralAssetUpdated(tokenAddress, collateralRatio, _liquidationThreshold, debtCeiling);
 }
    
 
@@ -697,7 +692,7 @@ function updateCollateralAsset(
         require(newRate > 0, "AFX: Invalid exchange rate");
         uint256 oldRate = ngnExchangeRate;
         ngnExchangeRate = newRate;
-        emit ExchangeRateUpdated(oldRate, newRate);
+        emit Events.ExchangeRateUpdated(oldRate, newRate);
     }
     
     // ============ RESERVES MANAGEMENT ============
@@ -709,16 +704,19 @@ function updateCollateralAsset(
         require(amount > 0, "AFX: Invalid amount");
         uint256 oldReserves = totalFiatReserves;
         totalFiatReserves += amount;
-        emit FiatReservesUpdated(oldReserves, totalFiatReserves);
+        emit Events.FiatReservesUpdated(oldReserves, totalFiatReserves);
     }
     
     /**
      * @notice Set fiat reserves (emergency function)
      */
     function setFiatReserves(uint256 newAmount) external onlyOwner whenNotPaused {
+        // WARNING: This function allows arbitrary setting of fiat reserves and is highly risky in production.
+        // It is included for demonstration purposes only to allow easy manipulation of fiat backing.
+        // In a production environment, this function should be removed or secured with extreme caution (e.g., multi-sig, time-lock).
         uint256 oldReserves = totalFiatReserves;
         totalFiatReserves = newAmount;
-        emit FiatReservesUpdated(oldReserves, newAmount);
+        emit Events.FiatReservesUpdated(oldReserves, newAmount);
     }
     
     // ============ VIEW FUNCTIONS ============
@@ -805,22 +803,27 @@ function updateCollateralAsset(
     
     function setMinter(address account, bool status) external onlyOwner {
         minters[account] = status;
+        emit Events.MinterStatusUpdated(account, status);
     }
     
     function setBurner(address account, bool status) external onlyOwner {
         burners[account] = status;
+        emit Events.BurnerStatusUpdated(account, status);
     }
     
     function setOracle(address account, bool status) external onlyOwner {
         priceOracles[account] = status;
+        emit Events.OracleStatusUpdated(account, status);
     }
     
     function setLiquidator(address account, bool status) external onlyOwner {
         liquidators[account] = status;
+        emit Events.LiquidatorStatusUpdated(account, status);
     }
     
     function setBlacklist(address account, bool status) external onlyOwner {
         blacklisted[account] = status;
+        emit Events.BlacklistStatusUpdated(account, status);
     }
     
     // ============ PARAMETER UPDATES ============
@@ -828,11 +831,13 @@ function updateCollateralAsset(
     function setStabilityFeeRate(uint256 newRate) external onlyOwner {
         require(newRate <= 2000, "AFX: Fee rate too high"); // Max 20% annual
         stabilityFeeRate = newRate;
+        emit Events.StabilityFeeRateUpdated(stabilityFeeRate, newRate);
     }
     
     function setTargetFiatRatio(uint256 newRatio) external onlyOwner {
         require(newRatio >= 1000 && newRatio <= 9000, "AFX: Invalid ratio");
         targetFiatRatio = newRatio;
+        emit Events.TargetFiatRatioUpdated(targetFiatRatio, newRatio);
     }
     
     function setFiatRatioLimits(uint256 minRatio, uint256 maxRatio) external onlyOwner {
@@ -840,6 +845,7 @@ function updateCollateralAsset(
         require(minRatio >= 1000 && maxRatio <= 9000, "AFX: Ratios out of range");
         minimumFiatRatio = minRatio;
         maximumFiatRatio = maxRatio;
+        emit Events.FiatRatioLimitsUpdated(minimumFiatRatio, maximumFiatRatio, minRatio, maxRatio);
     }
     
     // ============ EMERGENCY FUNCTIONS ============
@@ -900,7 +906,7 @@ function _initializeCollaterals(address[] memory tokenAddresses) internal {
         
         supportedCollaterals.push(tokenAddresses[i]);
         
-        emit CollateralAssetAdded(tokenAddresses[i], DEFAULT_COLLATERAL_RATIO, DEFAULT_DEBT_CEILING);
+        emit Events.CollateralAssetAdded(tokenAddresses[i], DEFAULT_COLLATERAL_RATIO, DEFAULT_DEBT_CEILING);
     }
 }
 }
