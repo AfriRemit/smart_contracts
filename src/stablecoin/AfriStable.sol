@@ -602,7 +602,7 @@ function _estimateFromCrypto(address collateral, uint256 collateralAmount)
                 // For a demo, this would just be a state change.
                 totalFiatReserves = targetFiatReserves;
             }
-            emit Events.RebalanceTriggered(currentFiatRatio, targetFiatRatio);
+            emit Events.RebalanceTriggered(currentFiatRatio, targetFiatRatio, block.timestamp);
         }
     }
     
@@ -801,29 +801,34 @@ function updateCollateralAsset(
     
     // ============ ACCESS CONTROL ============
     
-    function setMinter(address account, bool status) external onlyOwner {
-        minters[account] = status;
-        emit Events.MinterStatusUpdated(account, status);
+    function setFiatDepositor(address _account, bool _status) public onlyOwner {
+        fiatDepositors[_account] = _status;
+        emit Events.FiatDepositorStatusUpdated(_account, _status);
     }
-    
-    function setBurner(address account, bool status) external onlyOwner {
-        burners[account] = status;
-        emit Events.BurnerStatusUpdated(account, status);
+
+    function setMinter(address _account, bool _status) public onlyOwner {
+        minters[_account] = _status;
+        emit Events.MinterStatusUpdated(_account, _status);
     }
-    
-    function setOracle(address account, bool status) external onlyOwner {
-        priceOracles[account] = status;
-        emit Events.OracleStatusUpdated(account, status);
+
+    function setBurner(address _account, bool _status) public onlyOwner {
+        burners[_account] = _status;
+        emit Events.BurnerStatusUpdated(_account, _status);
     }
-    
-    function setLiquidator(address account, bool status) external onlyOwner {
-        liquidators[account] = status;
-        emit Events.LiquidatorStatusUpdated(account, status);
+
+    function setOracle(address _account, bool _status) public onlyOwner {
+        priceOracles[_account] = _status;
+        emit Events.OracleStatusUpdated(_account, _status);
     }
-    
-    function setBlacklist(address account, bool status) external onlyOwner {
-        blacklisted[account] = status;
-        emit Events.BlacklistStatusUpdated(account, status);
+
+    function setLiquidator(address _account, bool _status) public onlyOwner {
+        liquidators[_account] = _status;
+        emit Events.LiquidatorStatusUpdated(_account, _status);
+    }
+
+    function setBlacklist(address _account, bool _status) public onlyOwner {
+        blacklisted[_account] = _status;
+        emit Events.BlacklistStatusUpdated(_account, _status);
     }
     
     // ============ PARAMETER UPDATES ============

@@ -215,6 +215,22 @@ contract Swap is OwnerIsCreator, ReentrancyGuard {
         return _burnableFees;
     }
 
+    /**
+     * @dev Returns the address of the price feed oracle.
+     * @return Address of the price feed oracle.
+     */
+    function getPriceFeed() public view returns (address) {
+        return address(priceAPI);
+    }
+
+    /**
+     * @dev Returns the current swap fee percentage.
+     * @return The swap fee in basis points.
+     */
+    function getSwapFee() public view returns (uint) {
+        return swapFee;
+    }
+
     // ============ PROVIDER FUNCTIONS ============
 
     /**

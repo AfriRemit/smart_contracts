@@ -69,6 +69,14 @@ library Events {
     );
 
     /**
+     * @dev Emitted when a role is set for an address.
+     * @param role The name of the role being set.
+     * @param newAddress The address to which the role is assigned. (indexed)
+     * @param timestamp The timestamp of the event.
+     */
+    event RoleSet(string role, address indexed newAddress, uint timestamp);
+
+    /**
      * @dev Emitted when the swap fee is updated.
      * @param newFee The new swap fee in basis points.
      * @param updater The address that updated the fee. (indexed for efficient lookup)
@@ -77,6 +85,18 @@ library Events {
     event SwapFeeUpdated(
         uint newFee,
         address indexed updater,
+        uint timestamp
+    );
+
+    /**
+     * @dev Emitted when stability fees are collected.
+     * @param amount The amount of fees collected.
+     * @param token The address of the token in which fees were collected. (indexed)
+     * @param timestamp The timestamp of the event.
+     */
+    event StabilityFeeCollected(
+        uint256 amount,
+        address indexed token,
         uint timestamp
     );
 
@@ -243,18 +263,31 @@ library Events {
     );
 
     /**
+     * @dev Emitted when rebalancing is triggered.
+     * @param oldCollateralRatio The collateral ratio before rebalancing.
+     * @param newCollateralRatio The collateral ratio after rebalancing.
+     * @param timestamp The timestamp of the event.
+     */
+    event RebalanceTriggered(
+        uint256 oldCollateralRatio,
+        uint256 newCollateralRatio,
+        uint timestamp
+    );
+
+    /**
+     * @dev Emitted when a new collateral asset is added.
+     * @param assetAddress The address of the new collateral asset. (indexed)
+     * @param LTV The Loan-to-Value ratio for the asset.
+     * @param timestamp The timestamp of the event.
+     */
+    event CollateralAssetAdded(address indexed assetAddress, uint256 LTV, uint timestamp);
+
+    /**
      * @dev Emitted when the system's fiat reserves are updated.
      * @param oldReserves The fiat reserves before the update.
      * @param newReserves The fiat reserves after the update.
      */
     event FiatReservesUpdated(uint256 oldReserves, uint256 newReserves);
-
-    /**
-     * @dev Emitted when rebalancing is triggered.
-     * @param currentFiatRatio The current fiat backing ratio.
-     * @param targetFiatRatio The target fiat backing ratio.
-     */
-    event RebalanceTriggered(uint256 currentFiatRatio, uint256 targetFiatRatio);
 
     /**
      * @dev Emitted when the NGN exchange rate is updated.
@@ -316,8 +349,8 @@ library Events {
      * @dev Emitted when the fiat ratio limits are updated.
      * @param oldMinRatio The minimum fiat ratio before the update.
      * @param oldMaxRatio The maximum fiat ratio before the update.
-     * @param newMinRatio The minimum fiat ratio after the update.
-     * @param newMaxRatio The maximum fiat ratio after the update.
+     * @param newMinRatio The new minimum fiat ratio.
+     * @param newMaxRatio The new maximum fiat ratio.
      */
     event FiatRatioLimitsUpdated(
         uint256 oldMinRatio,
@@ -326,15 +359,5 @@ library Events {
         uint256 newMaxRatio
     );
 
-    /**
-     * @dev Emitted when a new collateral asset is added.
-     * @param tokenAddress The address of the new collateral token. (indexed)
-     * @param collateralRatio The default collateral ratio set for this asset.
-     * @param debtCeiling The default debt ceiling set for this asset.
-     */
-    event CollateralAssetAdded(
-        address indexed tokenAddress,
-        uint256 collateralRatio,
-        uint256 debtCeiling
-    );
+    event FiatDepositorStatusUpdated(address indexed account, bool status);
 }
