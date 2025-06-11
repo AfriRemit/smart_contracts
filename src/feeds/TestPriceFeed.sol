@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 import {OwnerIsCreator} from "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./MockV3Aggregator.sol";
+
 /**
  * @title Enhanced TestPriceFeed
  * @notice Price feed contract with both manual and oracle-based price updates
@@ -20,18 +21,16 @@ contract TestPriceFeed is OwnerIsCreator {
     uint256 NATIVE_PRICE = 511100000000000000;
    // uint256 BENZ_RATE = 511100000000000000;
     address public NATIVE_TOKEN;
-    
+  
     // Events
     event PriceUpdated(address indexed token, uint256 newPrice);
     event OracleSet(address indexed token, address indexed aggregator);
     event MockAggregatorCreated(address indexed token, address indexed mockAggregator);
     
-    constructor(
-      
-    ) {
+    constructor(address _nativeToken) {
         // Constructor: Ensure NATIVE_TOKEN is derived securely or validated if passed as an argument.
-        // Current derivation using keccak256 is unusual for a token address in production; consider setting a predefined LISK token address.
-        NATIVE_TOKEN = address(uint160(uint256(keccak256(abi.encodePacked("LISK"))))); 
+        NATIVE_TOKEN = _nativeToken; 
+        
     }
     
     /**
@@ -188,10 +187,11 @@ contract TestPriceFeed is OwnerIsCreator {
         return (amount0 * uint256(_rate)) / (10 ** 8);
     }
 
-    function getNativeToken() external view returns (address) {
-        return NATIVE_TOKEN;
-    }
-    
+
+function getNativeToken() external view returns (address) {
+    return NATIVE_TOKEN;
+}   
+
     /**
      * @notice Get aggregator address for a token
      */

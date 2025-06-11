@@ -12,12 +12,14 @@ contract SwapReceiveTest is Test {
     TestnetToken public afriCoin;
     TestPriceFeed public priceFeed;
 
+    address nativeToken = address(0x123);
+
     address user = address(0xBEEF);
     uint256 sendAmount = 1 ether;
 
     function setUp() public {
         afriCoin = new TestnetToken("AfriCoin", "AFC");
-        priceFeed = new TestPriceFeed();
+        priceFeed = new TestPriceFeed(nativeToken);
         swap = new Swap(address(priceFeed), address(afriCoin));
 
         vm.deal(user, 10 ether); // fund the user with ETH

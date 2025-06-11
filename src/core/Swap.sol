@@ -8,6 +8,7 @@ import {OwnerIsCreator} from "@chainlink/contracts/src/v0.8/shared/access/OwnerI
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+
 /**
  * @title AfriCoin Swap Contract
  * @dev Decentralized exchange contract for token swapping and liquidity provision on LISK network
@@ -31,7 +32,7 @@ contract Swap is OwnerIsCreator, ReentrancyGuard {
     // ============ STATE VARIABLES ============
     
     /// @dev Price feed oracle contract for token price calculations
-    TestPriceFeed private priceAPI;
+    TestPriceFeed public priceAPI;
     
     /// @dev Platform accumulated profits in AfriCoin tokens
     uint256 private _platformProfit;
@@ -113,6 +114,7 @@ contract Swap is OwnerIsCreator, ReentrancyGuard {
         uint[] liquids;
     }
 
+
     // ============ CONSTRUCTOR ============
 
     /**
@@ -124,16 +126,30 @@ contract Swap is OwnerIsCreator, ReentrancyGuard {
         // Input validation: Ensure _priceAPI and _AFRI_COIN addresses are not zero.
         require(_priceAPI != address(0), "Swap: Price API address cannot be zero.");
         require(_AFRI_COIN != address(0), "Swap: AFRI_COIN address cannot be zero.");
-
+        
         // Initialize the price feed oracle
         priceAPI = TestPriceFeed(_priceAPI);
-
+        
         // Set the AfriCoin token address
         AFRI_COIN = _AFRI_COIN;
 
+
         // Create initial pool for ETH/AfriCoin pair
         _createPool(priceAPI.getNativeToken(), _AFRI_COIN);
+        
+
+
     }
+
+    // ============ GETTER FUNCTIONS ============ 
+
+    function getPool(uint id) public view returns (address token0, address token1) {
+        Pool memory pool = pools[id];
+        return (pool.token0, pool.token1);
+    }
+
+    
+
 
     // ============ PUBLIC VIEW FUNCTIONS ============
 
