@@ -1,155 +1,367 @@
-# AfriRemit
+# AfriRemit Platform 🌍
 
-A comprehensive DeFi platform designed for seamless cross-border transactions and decentralized financial services in Africa and beyond.
+> **The First Global DEX for African Stablecoins** - Built on Lisk Blockchain
 
-## Overview
+AfriRemit is a comprehensive decentralized finance (DeFi) ecosystem that bridges African and international financial markets through innovative blockchain solutions. Our platform enables seamless cross-border transactions, traditional savings groups, and real-world utility payments using African and international stablecoins.
 
-AfriRemit is a multi-featured decentralized finance (DeFi) ecosystem that provides various financial services including token swapping, liquidity provision, and cross-border remittance solutions. The platform is built on blockchain technology to offer transparent, efficient, and cost-effective financial services.
+## 🌟 Platform Overview
 
-## Features
+AfriRemit is the **first decentralized exchange (DEX) built on the Lisk blockchain** that enables **global access** to African and international stablecoins. We're revolutionizing how people interact with African currencies by providing:
 
-### 🔄 Token Swapping
-The Swap contract is one of AfriRemit's core features, enabling users to:
-- Swap between native tokens and ERC20 tokens and vice-versa
-- Swap between different ERC20 tokens
-- Benefit from competitive exchange rates
-- Pay minimal transaction fees (0.020% on successful swaps)
+- 🔄 **Cross-Border Stablecoin Swapping** - Direct swaps between African stablecoins (cNGN, cZAR, cKES, AFX) and international tokens (USDT, WETH, ETH, DAI)
+- 💰 **AFX Stablecoin** - Our native Naira-pegged stablecoin for swaps, savings, and payments
+- 🏦 **Digital Savings Groups** - On-chain rotational savings (Ajo/Esusu/Stokvel) with smart contract automation
+- 📱 **Utility Payments** - Pay bills, airtime, and utilities using stablecoins
+- 🔁 **On-Ramp/Off-Ramp** - Bank and mobile money integrations for NGN/cNGN, KES/cKES, and NGN/AFX
 
-### 💧 Liquidity Provision
-- Users can become liquidity providers and earn rewards
-- Support for multiple token pairs
-- Automated reward distribution based on contribution ratio
-- Flexible liquidity management with add/remove capabilities
+---
 
-### 💰 Rewards System
-- **80%** of swap fees distributed to liquidity providers
-- **17%** retained as platform profit
-- **3%** allocated for token burning (deflationary mechanism)
-- Automatic reward calculation based on liquidity contribution
+## 🎯 Problem Statement
 
-## Smart Contract Architecture
+Despite the rise of stablecoins in Africa and globally, critical gaps persist:
 
-### Swap Contract
-The main swap contract handles:
-- Token exchange operations
-- Liquidity pool management
-- Fee distribution
-- Provider reward calculations
+- ❌ **Isolated Local Stablecoins** - Low liquidity and limited global exchange support
+- 🌍 **Expensive Cross-Border Remittances** - High fees, long wait times, centralized systems
+- 🔗 **No Global African Stablecoin DEX** - Users can't trade cNGN or cZAR with global tokens
+- 🧱 **Informal Savings Groups** - Lack transparency, automation, and security
+- 💳 **Limited Crypto Utility Payments** - Especially for local bills and services
 
-### TestPriceFeed Contract
-An advanced price feed system designed for Lisk blockchain deployment:
+---
 
-#### Current Deployment Status
-- **Network**: Lisk Sepolia (Testnet)
-- **Oracle Support**: Chainlink is not currently available on Lisk networks
-- **Price Management**: Currently using manual price updates with oracle-ready architecture
+## ✨ Our Solution & Uniqueness
 
-#### Flexible Price Source Management
-The price feed is designed with adaptability in mind:
-- **Manual Price Setting**: Initially supports manual price updates for testing and development
-- **Oracle Integration**: Seamlessly integrates with Chainlink price feeds when available
-- **Hybrid Approach**: Can toggle between manual and oracle-based pricing per token
-- **Mock Aggregators**: Supports mock price feeds for testing environments
+### 🔄 **AfriSwap - Token Exchange Engine**
+**The core DEX functionality enabling global stablecoin access**
 
-#### Oracle Transition Capability
-Since Chainlink is not currently supported on Lisk Sepolia (where AfriRemit is deployed) and Lisk Mainnet, the system is designed for future oracle integration:
-- Currently operates with manual price setting due to lack of Chainlink support on Lisk
-- Ready to switch to live oracle data when Chainlink or other oracle providers become available on Lisk
-- Maintains price accuracy through manual updates until oracle infrastructure is available
-- Future-proof design that won't require contract redeployment when oracles become supported
+#### Key Features:
+- **Multi-Token Support**: Native ↔ ERC20 and ERC20 ↔ ERC20 swaps
+- **African Stablecoin Focus**: cNGN, cZAR, cKES, cGHS integrated with USDT, WETH, ETH, DAI
+- **Competitive Fees**: 0.020% swap fee (20 basis points)
+- **Liquidity Incentives**: 80% of fees distributed to liquidity providers
+- **Lisk-Optimized**: Built specifically for Lisk blockchain infrastructure
 
-#### Key Price Feed Features
-- Support for multiple token pairs
-- Configurable decimal precision
-- Real-time price updates via oracles
-- Fallback to manual pricing when needed
-- Event logging for price updates and oracle changes
-
-## Technical Specifications
-
-### Supported Operations
-- **Native ↔ ERC20**: Direct swaps between native blockchain tokens and ERC20 tokens
-- **ERC20 ↔ ERC20**: Cross-token swaps between different ERC20 tokens
-- **Liquidity Management**: Add and remove liquidity from pools
-- **Reward Claims**: Withdraw earned rewards from liquidity provision
-
-### Fee Structure
-- **Swap Fee**: 0.020% (20 basis points) per transaction
-- **Provider Rewards**: 80% of collected fees
-- **Platform Revenue**: 17% of collected fees
-- **Burn Mechanism**: 3% of collected fees (deflationary)
-
-### Security Features
-- Owner-controlled administrative functions
-- Provider authentication system
-- Minimum transaction limits (100 WEI)
-- Pool size validation before swaps
-- Secure token transfer mechanisms
-
-## Getting Started
-
-### Prerequisites
-- Solidity ^0.8.0
-- Chainlink contracts for price feeds
-- OpenZeppelin contracts for security
-
-### Deployment
-1. Deploy the TestPriceFeed contract first
-2. Deploy the main Swap contract with required parameters
-3. Configure token pairs and price feeds
-4. Set up initial liquidity pools
-
-### Usage
-1. **Swapping**: Call the `swap()` function with desired token pair and amount
-2. **Providing Liquidity**: Use `provideLiquidity()` to add funds to pools
-3. **Claiming Rewards**: Call `withDrawEarnings()` to claim accumulated rewards
-4. **Pool Management**: Admins can create new pools and update parameters
-
-## Price Feed Architecture for Lisk
-
-The AfriRemit price feed system is specifically designed to address the current limitations of oracle infrastructure on Lisk:
-
-### Current State (Lisk Sepolia)
-- **Manual Price Management**: Prices are currently set manually due to lack of Chainlink support
-- **Admin-Controlled Updates**: Platform administrators update token prices as needed
-- **Reliable Operation**: Ensures consistent pricing despite oracle limitations
-
-### Future Oracle Integration
-Since Chainlink is not yet available on Lisk Sepolia or Lisk Mainnet, the system is built with forward compatibility:
-
+#### Supported Operations:
 ```solidity
-// Ready for future oracle integration
-function togglePriceSource(address _tokenAddress, bool _useOracle) external onlyOwner
-
-// Will be used when Chainlink becomes available on Lisk
-function setAggregator(address _tokenAddress, address _aggregatorAddress) external onlyOwner
-
-// Current method for price management on Lisk
-function updateMockPrice(address _tokenAddress, int256 _newPrice) external onlyOwner
+// Native ↔ ERC20: Direct swaps between native tokens and ERC20 tokens
+// ERC20 ↔ ERC20: Cross-token swaps between different ERC20 tokens
+// Liquidity Management: Add and remove liquidity from pools
+// Reward Claims: Withdraw earned rewards from liquidity provision
 ```
 
-### Benefits of This Approach
-- **No Redeployment Needed**: When oracles become available on Lisk, simply toggle the price source
-- **Seamless Transition**: Switch from manual to oracle pricing without disrupting operations
-- **Network-Specific Design**: Tailored for Lisk's current infrastructure limitations
-- **Future-Proof**: Ready for Lisk ecosystem growth and oracle provider adoption
+#### Fee Structure:
+- **Swap Fee**: 0.020% per transaction
+- **Provider Rewards**: 80% of collected fees
+- **Platform Revenue**: 17% of collected fees  
+- **Burn Mechanism**: 3% of collected fees (deflationary)
 
-## Future Enhancements
+### 💰 **AFX Stablecoin - Naira-Pegged Stability**
+**Our native hybrid-collateralized stablecoin maintaining 1:1 peg with Nigerian Naira**
 
-- **AfriStable (AFX) Stablecoin (Hybrid Collateralized: Fiat + Crypto)**
-  - Enables saving features
-  - Purchase AFX stablecoin using:
-    - **Fiat** (e.g., via stablecoins like USDC or through a fiat gateway for off-chain NGN)
-    - **Crypto** (e.g., ETH, BTC, etc.)
-    - **Or both**, in a defined ratio (e.g., 50% fiat / 50% crypto)
-  - **Redeem and Burn** mechanism:
-    - Users return AFX to redeem collateral
-    - Upon burning AFX:
-      - They receive the original collateral mix  
-      - Or choose payout in either **crypto** or **fiat** (based on initial deposit)
+#### Core Features:
+- **Dual Collateral System**: Backed by both fiat reserves (NGN) and approved crypto assets
+- **Dynamic Collateral Ratios**: Automatic adjustment based on market conditions
+- **Integrated Price Oracle**: Real-time price feeds for accurate valuation
+- **Over-Collateralization**: Crypto-backed positions require over-collateralization
+- **Emergency Liquidation**: Automated liquidation for unsafe positions
+- **Automated Rebalancing**: Protocol maintains optimal fiat/crypto backing ratios
 
+#### Minting Options:
+```solidity
+// Fiat-Backed Minting
+function mintWithFiat() // Mint AFX using NGN reserves
+function depositFiatAndMint() // Add fiat and mint in one transaction
 
+// Crypto-Collateralized Minting  
+function depositAndMint() // Deposit crypto collateral and mint AFX
+function burnAndWithdraw() // Burn AFX and withdraw collateral
+```
 
+#### Security Features:
+- **Role-Based Access**: Minters, burners, oracles, liquidators, fiat depositors
+- **Blacklisting Capability**: Compliance and security controls
+- **Emergency Controls**: Pausable contract with emergency withdrawal
+- **Liquidation Protection**: Automated liquidation of unsafe positions
 
+### 🏦 **AjoEsusu Savings - Digital Rotating Savings Groups**
+**Traditional African savings systems powered by smart contracts**
 
+#### Revolutionary Features:
+- **Agent-Based System**: Trusted community members manage savings groups
+- **Multi-Token Support**: Compatible with cNGN, cZAR, cGHS, cKES, USDT, WETH, AFX
+- **Automated Payouts**: Smart contract handles calculations and distributions
+- **Reputation System**: Performance-based scoring for agents and members
+- **Invite Code Security**: Secure group joining through agent-generated codes
+- **Flexible Schedules**: Customizable contribution frequencies
 
+#### Core Functionality:
+```solidity
+// User Registration & Agent System
+function registerUser(string memory _name)
+function registerAsAjoAgent(string memory _name, string memory _contactInfo)
+
+// Group Management
+function createGroup(...) // Agents create savings groups
+function joinGroupWithCode(uint256 _groupId, string memory _inviteCode)
+
+// Savings Operations
+function contribute(uint256 _groupId) // Make contributions
+function claimPayout(uint256 _groupId) // Claim when it's your turn
+```
+
+#### Group Structure:
+- **Flexible Group Sizes**: 2-20 members
+- **Customizable Schedules**: Minutes to months (demo-friendly)
+- **Multiple Currencies**: Support for 8+ African and international tokens
+- **Automated Management**: Smart contract handles rotation and payments
+
+---
+
+## 🚀 Technical Architecture
+
+### Deployment Networks
+- **Primary Network**: Lisk Sepolia (Testnet)
+- **Production Ready**: Lisk Mainnet
+- **Oracle Strategy**: Manual price management with oracle-ready architecture
+
+### Smart Contract Stack
+```solidity
+// Core Contracts
+- Swap.sol          // DEX and liquidity management
+- AfriStable.sol        // AFX stablecoin protocol  
+- Savings.sol   // Rotating savings groups
+
+// Supporting Infrastructure
+- TestPriceFeed.sol     // Price oracle system
+- TestnetToken.sol      // Supported ERC20 tokens
+```
+
+### Supported Tokens
+```javascript
+const supportedTokens = {
+    international: ["USDT", "WETH", "ETH", "DAI"],
+    african: ["cNGN", "cZAR", "cKES", "cGHS"],
+    native: ["AFX", "AFR"]
+};
+```
+
+### Oracle Infrastructure
+**Lisk-Optimized Price Management**
+
+Since Chainlink is not currently available on Lisk, our system features:
+- **Current**: Manual price management by authorized oracles
+- **Future-Ready**: Seamless integration when Chainlink becomes available
+- **No Redeployment**: Toggle between manual and oracle pricing
+- **Hybrid Support**: Multiple price source options
+
+```solidity
+// Oracle Management
+function togglePriceSource(address _tokenAddress, bool _useOracle)
+function setAggregator(address _tokenAddress, address _aggregatorAddress) 
+function updateMockPrice(address _tokenAddress, int256 _newPrice)
+```
+
+---
+
+## 💼 Revenue Model
+
+### 1. **Swap Fees**
+- Low fee on every token/stablecoin swap (0.020%)
+- Competitive with major DEXs while supporting African liquidity
+
+### 2. **AFX Staking and Liquidity Yield**
+- Protocol revenue from staked AFX positions
+- Liquidity pool rewards and farming opportunities
+
+### 3. **Savings Group Automation Fees**
+- Small management fees for premium Ajo/Esusu features
+- Agent registration and performance bonuses
+
+### 4. **Utility Payment Processing**
+- Commission from bill payments, airtime, and utility transactions
+- Partnership revenue with service providers
+
+### 5. **On-Ramp/Off-Ramp Partner Fees**
+- Transaction fee-sharing from fiat integrations
+- Mobile money and bank partnership revenue
+
+### 6. **API & White-label Solutions**
+- Enterprise partnerships with fintechs
+- Backend integration services for stablecoin access
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+```bash
+# Development Environment
+- Solidity ^0.8.19
+- OpenZeppelin Contracts
+- Foundry development framework
+- Node.js & npm/yarn
+
+# Blockchain Infrastructure  
+- Lisk Sepolia testnet access
+- Supported ERC20 token contracts
+- Web3 wallet (MetaMask, WalletConnect)
+```
+
+### Quick Start Deployment
+```javascript
+// 1. Deploy AFX Stablecoin
+const afxStablecoin = await deploy("AfriStable", [
+    priceFeedAddress,
+    supportedCollaterals
+]);
+
+// 2. Deploy AjoEsusu Savings
+const ajoEsusu = await deploy("AjoEsusuSavings", [
+    tokenAddresses,
+    tokenNames
+]);
+
+// 3. Deploy AfriSwap DEX
+const afriSwap = await deploy("AfriSwap", [
+    afxStablecoin.address,
+    priceFeedAddress
+]);
+
+// 4. Configure token support
+await afriSwap.addSupportedTokens(tokenList);
+await ajoEsusu.setSupportedTokens(tokenList);
+```
+
+### Frontend Integration Example
+```javascript
+// Connect to AfriRemit platform
+const afriRemit = new AfriRemitSDK({
+    network: 'lisk-sepolia',
+    contracts: {
+        swap: '0x...',
+        savings: '0x...',
+        stablecoin: '0x...'
+    }
+});
+
+// Execute swap
+const swapResult = await afriRemit.swap({
+    from: 'cNGN',
+    to: 'USDT', 
+    amount: '1000',
+    slippage: 0.5
+});
+
+// Join savings group
+await afriRemit.savings.joinGroup({
+    groupId: 123,
+    inviteCode: 'AJO123456'
+});
+
+// Mint AFX stablecoin
+await afriRemit.stablecoin.mint({
+    type: 'fiat',
+    amount: '50000', // NGN
+    recipient: userAddress
+});
+```
+
+---
+
+### User Dashboard Functions
+```solidity
+// Portfolio Management
+function getUserPortfolio(address user) // Complete user portfolio
+function getUserActiveGroups(address user) // Active savings groups
+function getUserSwapHistory(address user) // Transaction history
+function getUserAFXPosition(address user) // AFX holdings and debt
+```
+
+---
+
+## 🔐 Security & Compliance
+
+### Security Features
+- **Multi-Signature Controls**: Critical operations require multiple signatures
+- **Reentrancy Protection**: All financial functions protected
+- **Access Control**: Role-based permissions throughout platform
+- **Emergency Pause**: Platform-wide emergency controls
+- **Audit Ready**: Code structure optimized for security audits
+
+### Compliance Features
+- **KYC Integration Ready**: User verification system hooks
+- **Blacklist Management**: Address blocking for compliance
+- **Transaction Monitoring**: All operations logged and traceable
+- **Regulatory Reporting**: Built-in reporting capabilities
+
+### Risk Management
+```solidity
+// AFX Stablecoin Risk Controls
+function liquidatePosition(address user) // Liquidate unsafe positions
+function emergencyPause() // Emergency platform pause
+function updateCollateralRequirements() // Dynamic risk adjustment
+
+// Savings Group Risk Controls  
+function detectDefault(uint256 groupId, address member) // Default detection
+function penalizeReputation(address user) // Reputation penalties
+function emergencyGroupReolution(uint256 groupId) // Emergency group closure
+```
+
+---
+
+## 🌍 Real-World Use Cases
+
+### For Individual Users
+1. **Cross-Border Remittances**: Send cNGN to family, they receive local currency
+2. **Savings Goals**: Join digital Ajo groups for disciplined saving
+3. **Utility Payments**: Pay electricity, internet, airtime with stablecoins
+4. **Investment**: Provide liquidity and earn fees from swaps
+
+### For Businesses  
+1. **Payment Processing**: Accept African stablecoins for goods/services
+2. **Treasury Management**: Hedge between local and international currencies
+3. **Employee Payments**: Pay salaries in stable, local currencies
+4. **Supply Chain**: Efficient B2B payments across African borders
+
+### For Financial Institutions
+1. **White-label Integration**: Embed AfriRemit's swap functionality
+2. **Liquidity Provision**: Earn yield on institutional capital
+3. **Customer On-boarding**: Offer stablecoin services to customers
+4. **Risk Management**: Hedge foreign exchange exposure
+
+---
+
+## 🛣️ Roadmap & Future Development
+
+### Phase 1: Core Platform (Q2 2025) ✅
+- [x] AfriSwap DEX deployment on Lisk
+- [x] AFX stablecoin launch  
+- [x] AjoEsusu savings groups
+- [x] Basic mobile app
+
+### Phase 2: Enhanced Features (Q3 2025)
+- [ ] Advanced trading features (limit orders, stop-loss)
+- [ ] NFT marketplace integration
+- [ ] Enhanced mobile money integration
+- [ ] Multi-language support
+
+### Phase 3: Ecosystem Expansion (Q4 2025)  
+- [ ] Additional African stablecoins (cUGX, cTZS)
+- [ ] DeFi lending and borrowing
+- [ ] Insurance products integration
+- [ ] Enterprise API suite
+
+### Phase 4: Global Scale (Q1 2026)
+- [ ] Multi-chain deployment
+- [ ] Institutional trading tools
+- [ ] Advanced derivatives
+- [ ] AI-powered financial advisory
+
+---
+
+**AfriRemit** - *Bridging African Finance with Global DeFi* 🌍
+
+> Built with ❤️ for financial inclusion and powered by Lisk blockchain technology
+
+---
+
+*This documentation is maintained by the AfriRemit team. For the latest updates, visit our official channels.*
