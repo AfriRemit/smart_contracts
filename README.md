@@ -206,32 +206,6 @@ function updateMockPrice(address _tokenAddress, int256 _newPrice)
 - Web3 wallet (MetaMask, WalletConnect)
 ```
 
-### Quick Start Deployment
-```javascript
-// 1. Deploy AFX Stablecoin
-const afxStablecoin = await deploy("AfriStable", [
-    priceFeedAddress,
-    supportedCollaterals
-]);
-
-// 2. Deploy AjoEsusu Savings
-const ajoEsusu = await deploy("AjoEsusuSavings", [
-    tokenAddresses,
-    tokenNames
-]);
-
-// 3. Deploy AfriSwap DEX
-const afriSwap = await deploy("AfriSwap", [
-    afxStablecoin.address,
-    priceFeedAddress
-]);
-
-// 4. Configure token support
-await afriSwap.addSupportedTokens(tokenList);
-await ajoEsusu.setSupportedTokens(tokenList);
-```
-
-
 ---
 
 ## 🔐 Security & Compliance
