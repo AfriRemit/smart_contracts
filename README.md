@@ -231,50 +231,6 @@ await afriSwap.addSupportedTokens(tokenList);
 await ajoEsusu.setSupportedTokens(tokenList);
 ```
 
-### Frontend Integration Example
-```javascript
-// Connect to AfriRemit platform
-const afriRemit = new AfriRemitSDK({
-    network: 'lisk-sepolia',
-    contracts: {
-        swap: '0x...',
-        savings: '0x...',
-        stablecoin: '0x...'
-    }
-});
-
-// Execute swap
-const swapResult = await afriRemit.swap({
-    from: 'cNGN',
-    to: 'USDT', 
-    amount: '1000',
-    slippage: 0.5
-});
-
-// Join savings group
-await afriRemit.savings.joinGroup({
-    groupId: 123,
-    inviteCode: 'AJO123456'
-});
-
-// Mint AFX stablecoin
-await afriRemit.stablecoin.mint({
-    type: 'fiat',
-    amount: '50000', // NGN
-    recipient: userAddress
-});
-```
-
----
-
-### User Dashboard Functions
-```solidity
-// Portfolio Management
-function getUserPortfolio(address user) // Complete user portfolio
-function getUserActiveGroups(address user) // Active savings groups
-function getUserSwapHistory(address user) // Transaction history
-function getUserAFXPosition(address user) // AFX holdings and debt
-```
 
 ---
 
@@ -300,10 +256,6 @@ function liquidatePosition(address user) // Liquidate unsafe positions
 function emergencyPause() // Emergency platform pause
 function updateCollateralRequirements() // Dynamic risk adjustment
 
-// Savings Group Risk Controls  
-function detectDefault(uint256 groupId, address member) // Default detection
-function penalizeReputation(address user) // Reputation penalties
-function emergencyGroupReolution(uint256 groupId) // Emergency group closure
 ```
 
 ---
@@ -364,4 +316,4 @@ function emergencyGroupReolution(uint256 groupId) // Emergency group closure
 
 ---
 
-*This documentation is maintained by the AfriRemit team. For the latest updates, visit our official channels.*
+*This documentation is maintained by the AfriRemit team. For the latest updates.*
