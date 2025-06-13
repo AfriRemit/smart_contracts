@@ -340,9 +340,6 @@ foundryup
 # OpenZeppelin Contracts
 forge install OpenZeppelin/openzeppelin-contracts
 
-# Chainlink Contracts
-forge install smartcontractkit/chainlink-brownie-contracts
-
 # 4. Compile contracts
 forge build
 
@@ -450,11 +447,11 @@ function pause() / unpause() // Emergency pause functionality
 ## 🛣️ Roadmap & Future Development
 
 ### Phase 1: Core Platform (Q2 2025) ✅
-- [x] AfriSwap DEX deployment on Lisk
+- [x] AfriSwap DEX deployment on Lisk Sepolia
 - [x] AFX stablecoin launch  
 - [x] AjoEsusu savings groups with full agent system
-- [] Comprehensive reputation system
-- [] Basic mobile app
+- [ ] Comprehensive reputation system 
+- [ ] AfriSwap DEX deployment on Lisk Mainnet
 
 ### Phase 2: Enhanced Features (Q3 2025)
 - [ ] Advanced trading features (limit orders, stop-loss)
