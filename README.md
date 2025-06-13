@@ -446,34 +446,71 @@ function pause() / unpause() // Emergency pause functionality
 
 ## 🛣️ Roadmap & Future Development
 
-### Phase 1: Core Platform (Q2 2025) ✅
+
+## Phase 1: Core Platform Stabilization (Q2-Q3 2025)
+
+### Q2 2025 (Current - Foundation Completion)
+**Priority: Complete Core MVP**
 - [x] AfriSwap DEX deployment on Lisk Sepolia
 - [x] AFX stablecoin launch  
-- [x] AjoEsusu savings groups with full agent system
-- [ ] Comprehensive reputation system 
+- [x] AjoEsusu savings groups with agent system
+- [x] Dashboard with wallet integration
+- [x] Basic swap interface
+- [ ] **Critical Gap**: Comprehensive reputation system (essential for trust)
+- [ ] **Critical Gap**: Live price feed integration (essential for accurate swaps)
+- [ ] Enhanced security audits and bug fixes
+
+### Q3 2025 (Mainnet Launch & Core Features)
+**Priority: Production Readiness**
 - [ ] AfriSwap DEX deployment on Lisk Mainnet
-
-### Phase 2: Enhanced Features (Q3 2025)
-- [ ] Advanced trading features (limit orders, stop-loss)
-- [ ] Enhanced AjoEsusu features (group insurance, flexible scheduling)
-- [ ] NFT marketplace integration
-- [ ] Enhanced mobile money integration
-- [ ] Multi-language support
+- [ ] Mainnet security audit completion
+- [ ] Advanced AjoEsusu features (group insurance, flexible scheduling)
 - [ ] Agent dashboard and management tools
+- [ ] Multi-language support (English, Hausa, Yoruba, Igbo - Nigeria focus)
+- [ ] Mobile money integration (start with major Nigerian providers)
+- [ ] Basic analytics dashboard
 
-### Phase 3: Ecosystem Expansion (Q4 2025)  
-- [ ] Additional African stablecoins (cUGX, cTZS)
-- [ ] DeFi lending and borrowing integrated with savings
+## Phase 2: Feature Enhancement & Growth (Q4 2025)
+
+### Q4 2025 (Market Expansion)
+**Priority: User Growth & Retention**
+- [ ] Advanced trading features (limit orders, stop-loss)
+- [ ] Utility payment integration (electricity, mobile airtime)
+- [ ] Enhanced mobile app development
+- [ ] Agent network expansion program
+- [ ] Basic DeFi lending integrated with savings groups
+- [ ] Cross-group lending pilot program
+- [ ] User education and onboarding improvements
+
+## Phase 3: Ecosystem Development (Q1-Q2 2026)
+
+### Q1 2026 (Platform Maturity)
+**Priority: Ecosystem Building**
+- [ ] Additional African stablecoins (cUGX, cTZS) - start with 1-2 markets
+- [ ] NFT marketplace integration (focus on utility NFTs)
 - [ ] Insurance products for savings groups
-- [ ] Enterprise API suite for AjoEsusu integration
-- [ ] Cross-group lending and borrowing features
+- [ ] Enterprise API suite (basic version)
+- [ ] Advanced analytics and reporting
+- [ ] Partnership integrations with local banks
 
-### Phase 4: Global Scale (Q1 2026)
-- [ ] Multi-chain deployment for savings groups
-- [ ] Institutional AjoEsusu products
+### Q2 2026 (Advanced Features)
+**Priority: Innovation & Differentiation**
 - [ ] AI-powered savings recommendations
-- [ ] Advanced derivatives and yield farming
-- [ ] Global expansion of agent network
+- [ ] Cross-chain bridge development (focus on major chains)
+- [ ] Advanced DeFi yield farming features
+- [ ] Institutional AjoEsusu products (pilot)
+- [ ] API marketplace launch
+
+## Phase 4: Scale & Global Expansion (Q3-Q4 2026)
+
+### Q3-Q4 2026 (Global Ready)
+**Priority: Scale & Expansion**
+- [ ] Multi-chain deployment for savings groups
+- [ ] Additional African market expansion (Ghana, Kenya)
+- [ ] Advanced derivatives trading
+- [ ] Global agent network establishment
+- [ ] Enterprise-grade features and SLAs
+- [ ] Regulatory compliance for multiple jurisdictions
 
 ---
 
