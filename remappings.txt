@@ -1,7 +1,2 @@
-<<<<<<< HEAD
-@openzeppelin=lib/openzeppelin-contracts
-@chainlink=lib/chainlink/contracts
-=======
-   @openzeppelin/=lib/openzeppelin-contracts/
-   @chainlink/=lib/chainlink/
->>>>>>> c4fe13a1e0e92d3ec5d06cf85285fe7a32f854dc
+@openzeppelin/=lib/openzeppelin-contracts/
+@chainlink/=lib/chainlink/
